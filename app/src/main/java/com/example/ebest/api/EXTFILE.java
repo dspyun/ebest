@@ -12,13 +12,14 @@ import java.nio.charset.StandardCharsets;
 
 public class EXTFILE {
 
-    String[] key = new String[2];
+
     public EXTFILE() {
 
     }
 
     public String[] read_key()
     {
+        String[] key = new String[2];
         File file = new File(Environment.getExternalStorageDirectory(), "ebest/key.txt");
         try {
             FileInputStream fis = new FileInputStream(file);
@@ -36,38 +37,25 @@ public class EXTFILE {
         return key;
     }
 
-    public String[] readKey(String filename) {
-        File ebestDir = new File(Environment.getExternalStorageDirectory(), "ebest");
-        File file = new File(ebestDir, filename);
-
-        StringBuilder text = new StringBuilder();
-        if (file.exists()) {
-            try {
-                //BufferedReader br = new BufferedReader(new FileReader(file));
-                BufferedReader br = new BufferedReader(
-                        new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8));
-                key[0] = br.readLine();
-                key[1] = br.readLine();
-                br.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-                //return "Error reading file: " + e.getMessage();
-            }
-        }
-        return key;
-    }
-
-    public void request_permission()
+    public String[] read_stocklist()
     {
+        String[] stocklist = new String[30];
+        int i =0;
+        File file = new File(Environment.getExternalStorageDirectory(), "ebest/stocklist.txt");
+        try {
+            FileInputStream fis = new FileInputStream(file);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                stocklist[i] = line;
+                i++;
+            }
+            fis.close();
 
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-//            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
-//                    != PackageManager.PERMISSION_GRANTED) {
-//
-//                ActivityCompat.requestPermissions(this,
-//                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
-//            }
-//        }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return stocklist;
     }
 
 }

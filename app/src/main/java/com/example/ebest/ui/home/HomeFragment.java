@@ -22,6 +22,9 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -48,12 +51,20 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 
+import android.widget.LinearLayout;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+import java.util.ArrayList;
+import java.util.List;
+
 public class HomeFragment extends Fragment {
 
     private FragmentHomeBinding binding;
     LineChart lineChart;
-    TextView tv1;
-
+    LinearLayout chartContainer;
+    int index = 0;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -68,23 +79,38 @@ public class HomeFragment extends Fragment {
             startActivity(intent);
         }
 
+        //WindowCompat.setDecorFitsSystemWindows(requireActivity().getWindow(), false);
+
         EditText editText = binding.editTextInput;
         Button buttonRead = binding.buttonRead;
-        tv1 = binding.belowtext;
+        TextView stockview = binding.stocklist;
+        TextView stockinfo = binding.stockname;
+        chartContainer = binding.chartContainer;
 
         EBEST ebest = new EBEST();
-
-
-
+        EXTFILE extfile = new EXTFILE();
+        String[] stocklist = extfile.read_stocklist();
+        StringBuilder slist = new StringBuilder();
+        int size = stocklist.length;
+        for(int i = 0;i<size;i++)
+        {
+            slist.append(stocklist[i]);
+            slist.append(",");
+        }
+        stockview.setText(slist.toString());
 
         buttonRead.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 int count = 100;
                 int[] price = new int[count];
+                int[][] price3 = new int[3][count];
+                String stockname;
                 String userInput = editText.getText().toString();
                 try {
+                    stockname = ebest.fetchAccessCurrent(userInput);
                     price = ebest.fetchAccessChart(count,userInput);
+                    price3 = ebest.fetchAccessChart3(count,userInput);
                 } catch (ExecutionException e) {
                     throw new RuntimeException(e);
                 } catch (InterruptedException e) {
@@ -92,29 +118,33 @@ public class HomeFragment extends Fragment {
                 }
                 //final TextView textView = binding.textHome;
                 //textView.setText("현재가 : " + price);
-                lineChart = binding.lineChart;
-                draw_linechart(price);
+                stockinfo.setText(stockname);
+                //lineChart = binding.lineChart;
+                //draw_linechart(lineChart,price);
+                addChart(index,price,stockname);
+                index++;
             }
         });
-
 
         //homeViewModel.getText().observe(getViewLifecycleOwner(), textView::setText);
         return root;
     }
 
+    private void addChart(int index, int[] prices,String stockname) {
+        LineChart chart = new LineChart(getContext());
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                500
+        );
+        chart.setLayoutParams(params);
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 1 && grantResults.length > 0 &&
-                grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        draw_linechart(chart, prices,stockname);
+        chart.invalidate(); // 차트 갱신
 
-        } else {
-            tv1.setText("Permission denied.");
-        }
+        chartContainer.addView(chart);
     }
-    public void draw_linechart(int[] prices)
+
+    public void draw_linechart(LineChart chart, int[] prices, String stockname)
     {
 
         ArrayList<Entry> entries = new ArrayList<>();
@@ -123,22 +153,26 @@ public class HomeFragment extends Fragment {
             entries.add(new Entry(i, prices[i]));  // X = index, Y = value
         }
 
-        LineDataSet dataSet = new LineDataSet(entries, "Stock Prices");
+        LineDataSet dataSet = new LineDataSet(entries, stockname);
         dataSet.setColor(getResources().getColor(R.color.teal_700));
         dataSet.setValueTextSize(12f);
         dataSet.setDrawCircles(false);
-
+        chart.getLegend().setTextColor(Color.YELLOW); // stock prices
 
         LineData lineData = new LineData(dataSet);
-        lineChart.setData(lineData);
-        lineChart.getDescription().setText("Sample Line Chart");
-        lineChart.getXAxis().setPosition(XAxis.XAxisPosition.BOTTOM);
+        chart.setData(lineData);
+        chart.getDescription().setText("Sample Line Chart");
+        chart.getDescription().setTextColor(Color.YELLOW);
+        chart.getXAxis().setPosition(XAxis.XAxisPosition.BOTTOM);
 
-        lineChart.getAxisLeft().setEnabled(true);        // 왼쪽 Y축 활성화
-        lineChart.getAxisLeft().setDrawLabels(true);     // 값(숫자) 표시
-        lineChart.getAxisLeft().setTextSize(12f);        // 텍스트 크기
-        lineChart.getAxisLeft().setTextColor(Color.YELLOW); // 텍스트 색상
-        lineChart.animateX(1000);
+        chart.getAxisLeft().setEnabled(true);        // 왼쪽 Y축 활성화
+        chart.getAxisLeft().setDrawLabels(true);     // 값(숫자) 표시
+        chart.getAxisLeft().setTextSize(12f);        // 텍스트 크기
+        chart.getAxisLeft().setTextColor(Color.YELLOW); // 텍스트 색상
+        chart.getAxisRight().setTextColor(Color.YELLOW); // 텍스트 색상
+        chart.getXAxis().setTextColor(Color.YELLOW); // 텍스트 색상
+
+        chart.animateX(1000);
     }
 
     @Override

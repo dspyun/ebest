@@ -184,7 +184,7 @@ public class EBEST  {
     }
 
 
-    String current()
+    String current(String code)
     {
         int price=0;
         String price_str="";
@@ -207,7 +207,7 @@ public class EBEST  {
             connection.setRequestProperty("tr_cont_key", "");
 
             JSONObject innerdata = new JSONObject();
-            innerdata.put("shcode", "078020");
+            innerdata.put("shcode", code);
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("t1102InBlock", innerdata);
 
@@ -241,18 +241,20 @@ public class EBEST  {
             // Parse JSON response
             JSONObject jobj = new JSONObject(respStr.toString());
             JSONObject bodyobj = jobj.getJSONObject("t1102OutBlock");
-            String stockName = bodyobj.getString("hname");
-            price_str = bodyobj.getString("price");
+
+            price_str = bodyobj.getString("hname");
+            price_str += " : ";
+            price_str += bodyobj.getString("price");
             price = bodyobj.getInt("price");
 
-            Log.d("NetworkUtils", stockName + " 현재가 " + price);
+            Log.d("NetworkUtils", " 현재가 " + price);
 
         } catch (Exception e) {
             Log.e("YourTag", "Error occurred", e);
         }
         return price_str;
     }
-    public String fetchAccessHoGa()
+    public String fetchAccessHoGa(String code)
     {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         String result="";
@@ -260,7 +262,7 @@ public class EBEST  {
             String hoga_str="";
             //hoga_str = hoga();
             //chart();
-            hoga_str = current();
+            hoga_str = current(code);
             return hoga_str;
         };
 
@@ -277,13 +279,13 @@ public class EBEST  {
         return result;
     }
 
-    public String fetchAccessCurrent()
+    public String fetchAccessCurrent(String code)
     {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         String result="";
         Callable<String> task = () -> {
             String current_str="";
-            current_str = current();
+            current_str = current(code);
             //chart();
             return current_str;
         };
@@ -358,11 +360,11 @@ public class EBEST  {
             jsonObject.put("t8410InBlock", innerdata);
             innerdata.put("qrycnt", count);
             jsonObject.put("t8410InBlock", innerdata);
-            innerdata.put("sdate", " ");
+            innerdata.put("sdate", "20250101");
             jsonObject.put("t8410InBlock", innerdata);
-            innerdata.put("edate", "250330");
+            innerdata.put("edate", "25250330");
             jsonObject.put("t8410InBlock", innerdata);
-            innerdata.put("cts_date", "250330");
+            innerdata.put("cts_date", "20250330");
             jsonObject.put("t8410InBlock", innerdata);
             innerdata.put("comp_yn", "N");
             jsonObject.put("t8410InBlock", innerdata);
@@ -405,7 +407,8 @@ public class EBEST  {
             JSONArray bodyobj = jobj.getJSONArray("t8410OutBlock1");
             String date = bodyobj.getJSONObject(0).getString("date");
             //hoga_str = bodyobj.getJSONObject(0).getString("close");
-            for(int i =0;i<count;i++) {
+            int read_count = bodyobj.length();
+            for(int i =0;i<read_count;i++) {
                 chart_data[i] = bodyobj.getJSONObject(i).getInt("close");
             }
 
@@ -416,4 +419,120 @@ public class EBEST  {
         }
         return chart_data;
     }
+
+
+    public int[][] fetchAccessChart3(int count, String code) throws ExecutionException, InterruptedException {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        int[][] result = new int[1][1];
+        result[0][0] = 0;
+        int day_count = count;
+        Callable<int[][]> task = () -> {
+            int[][] chart_data = new int[3][500];
+            chart_data = chart3(day_count, code);
+            return chart_data;
+        };
+
+        Future<int[][]> future = executor.submit(task);
+        try {
+            result = future.get(); // Blocking call (waits for thread to finish)
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println("fail to get chart"); // Output: Data received!
+
+        executor.shutdown();
+        return result;
+    }
+
+    int[][] chart3(int count, String code)
+    {
+        int hoga=0;
+        String hoga_str="";
+        // 주식 차트 조회 예제
+        String ContentsType="application/json;charset=utf-8";
+        // stock/market-data는 stock경로의 market-data db를 가르킴
+        String tokenRequestUrl = HOST + "stock/chart";
+        int[][] chart_data = new int[3][count];
+        chart_data[0][0]=0;
+        while(ACCESS_TOKEN.isBlank()){ };
+
+        try {
+            // Create the URL object
+            URL url = new URL(tokenRequestUrl);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", ContentsType);
+            connection.setRequestProperty("Authorization", "Bearer " + ACCESS_TOKEN);
+            connection.setRequestProperty("tr_cd", "t1665");
+            connection.setRequestProperty("tr_cont", "Y");
+            connection.setRequestProperty("tr_cont_key", "");
+
+            JSONObject innerdata = new JSONObject();
+            innerdata.put("market", "1");
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("t1665InBlock", innerdata);
+            innerdata.put("upcode", "001");
+            jsonObject.put("t1665InBlock", innerdata);
+            innerdata.put("gubun2", "1");
+            jsonObject.put("t1665InBlock", innerdata);
+            innerdata.put("gubun3", "1");
+            jsonObject.put("t1665InBlock", innerdata);
+            innerdata.put("from_date", "20250101");
+            jsonObject.put("t1665InBlock", innerdata);
+            innerdata.put("to_date", "20250330");
+            jsonObject.put("t1665InBlock", innerdata);
+            innerdata.put("exchgubun", "K");
+            jsonObject.put("t1665InBlock", innerdata);
+
+            byte[] body = jsonObject.toString().getBytes();
+            connection.setFixedLengthStreamingMode(body.length);
+            connection.setDoOutput(true);
+
+            OutputStream outputStream = connection.getOutputStream();
+            outputStream.write(body);
+            outputStream.flush();
+
+            int responseCode = connection.getResponseCode();
+            if (responseCode != 200) {
+                Log.e("NetworkUtils", "HTTP error code: " + responseCode);
+                return chart_data;
+            }
+
+
+            Log.d("NetworkUtils", "Request body: " + jsonObject.toString());
+
+            // Read the response
+            StringBuilder respStr = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(connection.getInputStream(), "utf-8"))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    respStr.append(line);
+                    Log.d("NetworkUtils", line);
+                }
+
+            }
+
+            // Parse JSON response
+            JSONObject jobj = new JSONObject(respStr.toString());
+            //JSONObject bodyobj = jobj.getJSONObject("t8410OutBlock");
+            //String stockName = bodyobj.getString("hname");
+            JSONArray bodyobj = jobj.getJSONArray("t1665OutBlock1");
+            count = bodyobj.length();
+            for(int i =0;i<count;i++) {
+                chart_data[0][i] = bodyobj.getJSONObject(i).getInt("sv_08"); // person
+                chart_data[1][i] = bodyobj.getJSONObject(i).getInt("sv_17"); // foreign
+                chart_data[2][i] = bodyobj.getJSONObject(i).getInt("sv_18"); // compamy
+            }
+
+            Log.d("NetworkUtils", "날짜 : ");
+
+        } catch (Exception e) {
+            Log.e("YourTag", "Error occurred", e);
+        }
+        return chart_data;
+    }
 }
+
