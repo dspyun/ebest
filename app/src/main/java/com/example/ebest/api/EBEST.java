@@ -35,6 +35,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 public class EBEST  {
 
     String ACCESS_TOKEN="";
@@ -46,12 +49,17 @@ public class EBEST  {
     private static final String SCOPE = "oob";
 
     String[] key = new String[2];
+    String todayDate;
     public EBEST() {
         EXTFILE extfile = new EXTFILE();
         key = extfile.read_key();
         APP_KEY = key[0];
         APP_SECRET = key[1];
         fetchAccessToken();
+
+        LocalDate today = LocalDate.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        todayDate = today.format(formatter);
     }
 
     public void strSplit(StringBuffer sb) throws JSONException {
@@ -123,7 +131,7 @@ public class EBEST  {
         // stock/market-data는 stock경로의 market-data db를 가르킴
         String tokenRequestUrl = HOST + "stock/market-data";
 
-        while(ACCESS_TOKEN.isBlank()){ };
+        //while(ACCESS_TOKEN.isBlank()){ };
 
         try {
             // Create the URL object
@@ -193,7 +201,7 @@ public class EBEST  {
         // stock/market-data는 stock경로의 market-data db를 가르킴
         String tokenRequestUrl = HOST + "stock/market-data";
 
-        while(ACCESS_TOKEN.isBlank()){ };
+        //while(ACCESS_TOKEN.isBlank()){ };
 
         try {
             // Create the URL object
@@ -254,7 +262,7 @@ public class EBEST  {
         }
         return price_str;
     }
-    public String fetchAccessHoGa(String code)
+    public String fetchHoGa(String code)
     {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         String result="";
@@ -279,7 +287,7 @@ public class EBEST  {
         return result;
     }
 
-    public String fetchAccessCurrent(String code)
+    public String fetchCurrent(String code)
     {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         String result="";
@@ -304,18 +312,18 @@ public class EBEST  {
     }
 
 
-    public int[] fetchAccessChart(int count, String code) throws ExecutionException, InterruptedException {
+    public String[][] fetchChart(int count, String code) throws ExecutionException, InterruptedException {
         ExecutorService executor = Executors.newSingleThreadExecutor();
-        int[] result = new int[1];
-        result[0] = 0;
+        String[][] result = new String[1][5];
+        result[0][0] = "";
         int day_count = count;
-        Callable<int[]> task = () -> {
-            int[] chart_data = new int[500];
+        Callable<String[][]> task = () -> {
+            String[][] chart_data = new String[500][5];
             chart_data = chart(day_count, code);
             return chart_data;
         };
 
-        Future<int[]> future = executor.submit(task);
+        Future<String[][]> future = executor.submit(task);
         try {
             result = future.get(); // Blocking call (waits for thread to finish)
         } catch (ExecutionException e) {
@@ -329,7 +337,7 @@ public class EBEST  {
         return result;
     }
 
-    int[] chart(int count, String code)
+    String[][] chart(int count, String code)
     {
         int hoga=0;
         String hoga_str="";
@@ -337,9 +345,9 @@ public class EBEST  {
         String ContentsType="application/json;charset=utf-8";
         // stock/market-data는 stock경로의 market-data db를 가르킴
         String tokenRequestUrl = HOST + "stock/chart";
-        int[] chart_data = new int[count];
-        chart_data[0]=0;
-        while(ACCESS_TOKEN.isBlank()){ };
+        String[][] chart_data = new String[count][6];
+        chart_data[0][0]="";
+        //while(ACCESS_TOKEN.isBlank()){ };
 
         try {
             // Create the URL object
@@ -360,11 +368,11 @@ public class EBEST  {
             jsonObject.put("t8410InBlock", innerdata);
             innerdata.put("qrycnt", count);
             jsonObject.put("t8410InBlock", innerdata);
-            innerdata.put("sdate", "20250101");
+            innerdata.put("sdate", ""); //20250101
             jsonObject.put("t8410InBlock", innerdata);
-            innerdata.put("edate", "25250330");
+            innerdata.put("edate", todayDate); // 25250330
             jsonObject.put("t8410InBlock", innerdata);
-            innerdata.put("cts_date", "20250330");
+            innerdata.put("cts_date",todayDate ); // 25250330
             jsonObject.put("t8410InBlock", innerdata);
             innerdata.put("comp_yn", "N");
             jsonObject.put("t8410InBlock", innerdata);
@@ -409,9 +417,16 @@ public class EBEST  {
             //hoga_str = bodyobj.getJSONObject(0).getString("close");
             int read_count = bodyobj.length();
             for(int i =0;i<read_count;i++) {
-                chart_data[i] = bodyobj.getJSONObject(i).getInt("close");
+                chart_data[i][0] = bodyobj.getJSONObject(i).getString("date");
+                chart_data[i][1] = bodyobj.getJSONObject(i).getString("open");
+                chart_data[i][2] = bodyobj.getJSONObject(i).getString("high");
+                chart_data[i][3] = bodyobj.getJSONObject(i).getString("low");
+                chart_data[i][4] = bodyobj.getJSONObject(i).getString("close");
+                chart_data[i][5] = bodyobj.getJSONObject(i).getString("jdiff_vol");
             }
 
+            EXTFILE extfile = new EXTFILE();
+            extfile.writeOHLCV(code,chart_data);
             Log.d("NetworkUtils", "날짜 : " + date + ", 종가 : " + hoga);
 
         } catch (Exception e) {
@@ -421,7 +436,7 @@ public class EBEST  {
     }
 
 
-    public int[][] fetchAccessChart3(int count, String code) throws ExecutionException, InterruptedException {
+    public int[][] fetchChart3(int count, String code) throws ExecutionException, InterruptedException {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         int[][] result = new int[1][1];
         result[0][0] = 0;
@@ -456,7 +471,7 @@ public class EBEST  {
         String tokenRequestUrl = HOST + "stock/chart";
         int[][] chart_data = new int[3][count];
         chart_data[0][0]=0;
-        while(ACCESS_TOKEN.isBlank()){ };
+        //while(ACCESS_TOKEN.isBlank()){ };
 
         try {
             // Create the URL object

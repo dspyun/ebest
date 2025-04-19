@@ -11,10 +11,10 @@
         android:layout_height="wrap_content"
         android:background="#2a222222"
         android:rowCount="1"
-        android:columnCount="2">
+        android:columnCount="4">
         <EditText
             android:id="@+id/editTextInput"
-            android:layout_width="200dp"
+            android:layout_width="150dp"
             android:layout_height="wrap_content"
             android:hint="값을 입력하세요" />
         <Button
@@ -22,6 +22,16 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="읽기" />
+        <Button
+            android:id="@+id/buttonDN"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="다운로드" />
+        <Button
+            android:id="@+id/buttonAll"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="올차트" />
     </GridLayout>
     <TextView
         android:id="@+id/stockname"

@@ -65,6 +65,13 @@ public class HomeFragment extends Fragment {
     LineChart lineChart;
     LinearLayout chartContainer;
     int index = 0;
+    TextView stockview, stockinfo;
+    Button buttonRead,buttonDN,buttonAll;
+    EditText editText;
+
+    EBEST ebest = new EBEST();
+    EXTFILE extfile = new EXTFILE();
+    ArrayList<String> stocklist;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -81,20 +88,20 @@ public class HomeFragment extends Fragment {
 
         //WindowCompat.setDecorFitsSystemWindows(requireActivity().getWindow(), false);
 
-        EditText editText = binding.editTextInput;
-        Button buttonRead = binding.buttonRead;
-        TextView stockview = binding.stocklist;
-        TextView stockinfo = binding.stockname;
+        editText = binding.editTextInput;
+        buttonRead = binding.buttonRead;
+        buttonDN = binding.buttonDN;
+        stockview = binding.stocklist;
+        stockinfo = binding.stockname;
         chartContainer = binding.chartContainer;
+        buttonAll = binding.buttonAll;
 
-        EBEST ebest = new EBEST();
-        EXTFILE extfile = new EXTFILE();
-        String[] stocklist = extfile.read_stocklist();
+        stocklist = extfile.read_stocklist();
         StringBuilder slist = new StringBuilder();
-        int size = stocklist.length;
+        int size = stocklist.size();
         for(int i = 0;i<size;i++)
         {
-            slist.append(stocklist[i]);
+            slist.append(stocklist.get(i));
             slist.append(",");
         }
         stockview.setText(slist.toString());
@@ -107,27 +114,66 @@ public class HomeFragment extends Fragment {
                 int[][] price3 = new int[3][count];
                 String stockname;
                 String userInput = editText.getText().toString();
-                try {
-                    stockname = ebest.fetchAccessCurrent(userInput);
-                    price = ebest.fetchAccessChart(count,userInput);
-                    price3 = ebest.fetchAccessChart3(count,userInput);
-                } catch (ExecutionException e) {
-                    throw new RuntimeException(e);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-                //final TextView textView = binding.textHome;
-                //textView.setText("현재가 : " + price);
+                stockname = ebest.fetchCurrent(userInput);
                 stockinfo.setText(stockname);
-                //lineChart = binding.lineChart;
-                //draw_linechart(lineChart,price);
+                price = extfile.readOHLCV(userInput);
                 addChart(index,price,stockname);
                 index++;
             }
         });
+        buttonDN.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    downloadChart();
+                    buttonDN.setText("다운OK");
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
 
+        buttonAll.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    AllChart();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
         //homeViewModel.getText().observe(getViewLifecycleOwner(), textView::setText);
         return root;
+    }
+
+    public void downloadChart() throws InterruptedException {
+        int count = 100;
+        int[][] price3 = new int[3][count];
+
+        for (String stock : stocklist) {
+            try {
+                ebest.fetchChart(count, stock);
+                //price3 = ebest.fetchChart3(count,userInput);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public void AllChart() throws InterruptedException {
+        int count = 100;
+        int[][] price3 = new int[3][count];
+
+        for (String stock : stocklist) {
+            int[] price = new int[count];
+            //int[][] price3 = new int[3][count];
+            String stockname;
+            stockname = ebest.fetchCurrent(stock);
+            stockinfo.setText(stockname);
+            price = extfile.readOHLCV(stock);
+            addChart(index,price,stockname);
+        }
     }
 
     private void addChart(int index, int[] prices,String stockname) {
@@ -146,7 +192,6 @@ public class HomeFragment extends Fragment {
 
     public void draw_linechart(LineChart chart, int[] prices, String stockname)
     {
-
         ArrayList<Entry> entries = new ArrayList<>();
 
         for (int i = 0; i < prices.length; i++) {
