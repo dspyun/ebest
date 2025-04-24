@@ -1,43 +1,32 @@
 package com.example.ebest.api;
-import android.net.Uri;
-import android.os.AsyncTask;
+
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
-
-import com.example.ebest.MainActivity;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.net.ssl.HttpsURLConnection;
+import java.util.ArrayList;
 import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
-
-import androidx.appcompat.app.AppCompatActivity;
-
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class EBEST  {
 
     String ACCESS_TOKEN="";
@@ -172,7 +161,7 @@ public class EBEST  {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     respStr.append(line);
-                    Log.d("NetworkUtils", line);
+                    //Log.d("NetworkUtils", line);
                 }
             }
 
@@ -191,7 +180,89 @@ public class EBEST  {
         return hoga_str;
     }
 
+    private static final List<String> responses = Collections.synchronizedList(new ArrayList<>());
 
+    public static void fetchData(String code, String access_token, String tokenRequestUrl,int maxRetries, OnResponseListener listener) {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.execute(() -> {
+            int attempt = 0;
+            while (attempt < maxRetries) {
+                attempt++;
+                try {
+                    StringBuilder respStr = new StringBuilder();
+                    URL url = new URL(tokenRequestUrl);
+                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                    connection.setRequestMethod("POST");
+                    connection.setRequestProperty("Content-Type", "application/json");
+                    connection.setRequestProperty("Authorization", "Bearer " + access_token);
+                    connection.setRequestProperty("tr_cd", "t1102");
+                    connection.setRequestProperty("tr_cont", "N");
+                    connection.setRequestProperty("tr_cont_key", "");
+
+                    JSONObject innerdata = new JSONObject();
+                    innerdata.put("shcode", code);
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("t1102InBlock", innerdata);
+
+                    byte[] body = jsonObject.toString().getBytes();
+                    connection.setFixedLengthStreamingMode(body.length);
+                    connection.setDoOutput(true);
+
+                    OutputStream outputStream = connection.getOutputStream();
+                    outputStream.write(body);
+                    outputStream.flush();
+
+                    int responseCode = connection.getResponseCode();
+                    if (responseCode >= 500 && responseCode < 600) {
+                        Log.w("FetchRetry", "서버 오류 (" + responseCode + "), 재시도 중... (" + attempt + "/" + maxRetries + ")");
+                        Thread.sleep(1000 * attempt); // 지수 백오프
+                        continue;
+                    }
+
+                    if (responseCode != 200) {
+                        throw new Exception("HTTP error code: " + responseCode);
+                    }
+
+                    try (BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(connection.getInputStream(), "utf-8"))) {
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            respStr.append(line);
+                        }
+                    }
+
+                    JSONObject jobj = new JSONObject(respStr.toString());
+                    JSONObject bodyobj = jobj.getJSONObject("t1102OutBlock");
+                    String name = bodyobj.getString("hname");
+                    String price = bodyobj.getString("price");
+
+                    // UI 스레드에서 콜백
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        listener.onSuccess(name, price);
+                    });
+                    return;
+                } catch (Exception e) {
+                    Log.e("FetchRetry", "시도 " + attempt + " 실패: " + e.getMessage());
+                    if (attempt == maxRetries) {
+                        new Handler(Looper.getMainLooper()).post(() -> {
+                            listener.onFailure(e);
+                        });
+                    } else {
+                        try {
+                            Thread.sleep(1000 * attempt); // 재시도 대기
+                        } catch (InterruptedException ie) {
+                            // 무시
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    public interface OnResponseListener {
+        void onSuccess( String name, String price);
+        void onFailure(Exception e);
+    }
     String current(String code)
     {
         int price=0;
@@ -200,7 +271,7 @@ public class EBEST  {
         String ContentsType="application/json;charset=utf-8";
         // stock/market-data는 stock경로의 market-data db를 가르킴
         String tokenRequestUrl = HOST + "stock/market-data";
-
+        String result ="";
         //while(ACCESS_TOKEN.isBlank()){ };
 
         try {
@@ -230,7 +301,7 @@ public class EBEST  {
             int responseCode = connection.getResponseCode();
             if (responseCode != 200) {
                 Log.e("NetworkUtils", "HTTP error code: " + responseCode);
-                return "";
+                return result;
             }
 
             Log.d("NetworkUtils", "Request body: " + jsonObject.toString());
@@ -242,7 +313,7 @@ public class EBEST  {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     respStr.append(line);
-                    Log.d("NetworkUtils", line);
+                    //Log.d("NetworkUtils", line);
                 }
             }
 
@@ -250,17 +321,15 @@ public class EBEST  {
             JSONObject jobj = new JSONObject(respStr.toString());
             JSONObject bodyobj = jobj.getJSONObject("t1102OutBlock");
 
-            price_str = bodyobj.getString("hname");
-            price_str += " : ";
-            price_str += bodyobj.getString("price");
-            price = bodyobj.getInt("price");
+            result = bodyobj.getString("hname") + ",";
+            result += bodyobj.getString("price");
 
-            Log.d("NetworkUtils", " 현재가 " + price);
+            Log.d("NetworkUtils", "현재가 " + result);
 
         } catch (Exception e) {
             Log.e("YourTag", "Error occurred", e);
         }
-        return price_str;
+        return result;
     }
     public String fetchHoGa(String code)
     {
@@ -290,11 +359,10 @@ public class EBEST  {
     public String fetchCurrent(String code)
     {
         ExecutorService executor = Executors.newSingleThreadExecutor();
-        String result="";
+        String result = "";
         Callable<String> task = () -> {
-            String current_str="";
+            String current_str = "";
             current_str = current(code);
-            //chart();
             return current_str;
         };
 
@@ -302,7 +370,7 @@ public class EBEST  {
 
         try {
             result = future.get(); // Blocking call (waits for thread to finish)
-            System.out.println(result); // Output: Data received!
+            //System.out.println(result); // Output: Data received!
         } catch (InterruptedException | ExecutionException e) {
             Log.e("YourTag", "Error occurred", e);
         }
@@ -311,19 +379,48 @@ public class EBEST  {
         return result;
     }
 
+    public List<String> fetchCurrentList(ArrayList<String> codelist) throws InterruptedException {
+        String tokenRequestUrl = HOST + "stock/market-data";
+        List<String> response = Collections.synchronizedList(new ArrayList<>());
+        List<String> results = Collections.synchronizedList(new ArrayList<>());
+        AtomicInteger completedCount = new AtomicInteger(0);
+        int totalCount = codelist.size();
 
-    public String[][] fetchChart(int count, String code) throws ExecutionException, InterruptedException {
+        for (String code : codelist) {
+            fetchData(code, ACCESS_TOKEN, tokenRequestUrl,3,  new OnResponseListener() {
+                @Override
+                public void onSuccess(String name, String price) {
+                    Log.d("NetworkUtils", "현재가: " + price);
+                    response.add( name+" "+price);
+                    // 전체 완료 체크
+                    if (completedCount.incrementAndGet() == totalCount) {
+                        Log.d("FetchData", "✅ 모든 요청 완료!");
+                        for (String res : results) {
+                            Log.d("FetchData", res);
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    Log.e("NetworkUtils", "요청 실패", e);
+                    //Toast.makeText(context, "데이터 요청 실패", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+        return response;
+    }
+
+
+    public String fetchChart(int count, String code) throws ExecutionException, InterruptedException {
         ExecutorService executor = Executors.newSingleThreadExecutor();
-        String[][] result = new String[1][5];
-        result[0][0] = "";
-        int day_count = count;
-        Callable<String[][]> task = () -> {
-            String[][] chart_data = new String[500][5];
-            chart_data = chart(day_count, code);
-            return chart_data;
+        String result = "";
+
+        Callable<String> task = () -> {
+            return chart(count, code);
         };
 
-        Future<String[][]> future = executor.submit(task);
+        Future<String> future = executor.submit(task);
         try {
             result = future.get(); // Blocking call (waits for thread to finish)
         } catch (ExecutionException e) {
@@ -337,7 +434,9 @@ public class EBEST  {
         return result;
     }
 
-    String[][] chart(int count, String code)
+
+
+    String chart(int count, String code)
     {
         int hoga=0;
         String hoga_str="";
@@ -390,7 +489,7 @@ public class EBEST  {
             int responseCode = connection.getResponseCode();
             if (responseCode != 200) {
                 Log.e("NetworkUtils", "HTTP error code: " + responseCode);
-                return chart_data;
+                return "";
             }
 
 
@@ -403,9 +502,8 @@ public class EBEST  {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     respStr.append(line);
-                    Log.d("NetworkUtils", line);
+                    //Log.d("NetworkUtils", line);
                 }
-
             }
 
             // Parse JSON response
@@ -431,8 +529,9 @@ public class EBEST  {
 
         } catch (Exception e) {
             Log.e("YourTag", "Error occurred", e);
+            return "";
         }
-        return chart_data;
+        return "ok";
     }
 
 
@@ -525,7 +624,7 @@ public class EBEST  {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     respStr.append(line);
-                    Log.d("NetworkUtils", line);
+                    //Log.d("NetworkUtils", line);
                 }
 
             }

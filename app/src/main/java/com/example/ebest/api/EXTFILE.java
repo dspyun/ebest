@@ -1,4 +1,6 @@
 package com.example.ebest.api;
+import static java.lang.Thread.sleep;
+
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Environment;
@@ -38,12 +40,12 @@ public class EXTFILE {
         return key;
     }
 
-    public ArrayList<String> read_stocklist()
+    public ArrayList<String> read_stocklist(String stockgroup)
     {
 
         ArrayList<String> stocklist = new ArrayList<String>();
         int i =0;
-        File file = new File(Environment.getExternalStorageDirectory(), "/ebest/stocklist.txt");
+        File file = new File(Environment.getExternalStorageDirectory(), "/ebest/" + stockgroup);
         try {
             FileInputStream fis = new FileInputStream(file);
             BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
@@ -62,7 +64,7 @@ public class EXTFILE {
 
     public void writeOHLCV(String stockcode, String[][] data)
     {
-        String fileName = Environment.getExternalStorageDirectory() + "/ebest/" + stockcode +".csv";
+        String fileName = Environment.getExternalStorageDirectory() + "/ebest/data/" + stockcode +".csv";
         File file = new File(fileName);
         String header = "date,open,High,low,close,volume";
 
@@ -78,11 +80,10 @@ public class EXTFILE {
             e.printStackTrace();
         }
 
-
     }
     public int[] readOHLCV(String stockcode)
     {
-        String fileName = Environment.getExternalStorageDirectory() + "/ebest/" + stockcode +".csv";
+        String fileName = Environment.getExternalStorageDirectory() + "/ebest/data/" + stockcode +".csv";
         String line;
 
         ArrayList<Integer> closeValues = new ArrayList<>();
@@ -99,7 +100,8 @@ public class EXTFILE {
                         int close = (int) Double.parseDouble(values[4]);
                         closeValues.add(close);
                     } catch (NumberFormatException e) {
-                        System.err.println("숫자 파싱 오류: " + values[4]);
+                        System.err.println(stockcode + " 숫자 파싱 오류: " + values[4]);
+                        return closeValues.stream().mapToInt(i -> i).toArray();
                     }
                 }
             }
@@ -108,13 +110,6 @@ public class EXTFILE {
             e.printStackTrace();
         }
         // ArrayList를 int[] 배열로 변환
-        int[] closeArray = closeValues.stream().mapToInt(i -> i).toArray();
-
-        // 결과 출력
-        System.out.println("Close 값 배열:");
-        for (int value : closeArray) {
-            System.out.println(value);
-        }
-        return closeArray;
+        return closeValues.stream().mapToInt(i -> i).toArray();
     }
 }

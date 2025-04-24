@@ -1,59 +1,86 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
-    android:fitsSystemWindows="true"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
 
     <GridLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#2a222222"
-        android:rowCount="1"
-        android:columnCount="4">
+        android:columnCount="4"
+        android:rowCount="2">
+
+        <Spinner
+            android:id="@+id/fileSpinner"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_row="0"
+            android:layout_column="0"
+            android:layout_columnSpan="2"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:spinnerMode="dropdown"
+            android:textSize="30sp"/>
+
         <EditText
-            android:id="@+id/editTextInput"
-            android:layout_width="150dp"
+            android:id="@+id/editText"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:hint="값을 입력하세요" />
-        <Button
-            android:id="@+id/buttonRead"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="읽기" />
+            android:layout_row="1"
+            android:layout_column="0"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:digits="0123456789"
+            android:hint="일수"
+            android:inputType="number"
+            android:text="200"
+            android:textSize="20sp" />
+
         <Button
             android:id="@+id/buttonDN"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_row="1"
+            android:layout_column="1"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
             android:text="다운로드" />
+
         <Button
-            android:id="@+id/buttonAll"
-            android:layout_width="wrap_content"
+            android:id="@+id/buttonChart"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="올차트" />
+            android:layout_row="1"
+            android:layout_column="2"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:text="차트보기" />
+
+        <Button
+            android:id="@+id/buttonRead"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_row="1"
+            android:layout_column="3"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:text="종목편집" />
+
     </GridLayout>
-    <TextView
-        android:id="@+id/stockname"
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:text="읽기" />
-    <TextView
-        android:id="@+id/stocklist"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="읽기" />
 
     <ScrollView
+        android:id="@+id/scrollChart"
         android:layout_width="match_parent"
-        android:layout_height="500dp"
-        android:fillViewport="true">
+        android:layout_height="wrap_content"
+        android:fillViewport="true"
+        android:paddingBottom="50dp">
+
         <LinearLayout
             android:id="@+id/chartContainer"
-            android:orientation="vertical"
-
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
 
     </ScrollView>  <!-- fillViewport 설정을 통해 자식이 스크롤 뷰의 크기에 꽉 차게 함 -->
 
