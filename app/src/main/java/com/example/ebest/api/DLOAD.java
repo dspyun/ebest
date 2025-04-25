@@ -39,18 +39,25 @@ public class DLOAD {
         return resultMap;
     }
 
-    public HashMap<String, String> CurrentPriceList_ing() throws InterruptedException {
 
+    public HashMap<String, String> chartminList(int count) {
         HashMap<String, String> resultMap = new HashMap<>();
         // hashmap 초기화 : stock을 key로, value는 응답값으로
         for (String stock : stocklist) resultMap.put(stock, "");
-
-        List<String> result = new ArrayList<>();
-        result = ebest.fetchCurrentList(stocklist);
-
-        for (int i=0;i<stocklist.size();i++)
-            resultMap.put(stocklist.get(i), result.get(i));
-
+        // 다 채워질때까지 계속 다운로드 한다
+        while (!check_dload_finish(resultMap)) {
+            for (String stock : stocklist) {
+                if (resultMap.get(stock).isBlank()) {
+                    try {
+                        resultMap.put(stock, ebest.fetchChartMin(count, stock));
+                    } catch (ExecutionException e) {
+                        throw new RuntimeException(e);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        }
         return resultMap;
     }
 

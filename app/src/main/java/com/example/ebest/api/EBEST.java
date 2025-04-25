@@ -27,6 +27,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.net.ssl.HttpsURLConnection;
+
 public class EBEST  {
 
     String ACCESS_TOKEN="";
@@ -182,83 +184,6 @@ public class EBEST  {
 
     private static final List<String> responses = Collections.synchronizedList(new ArrayList<>());
 
-    public static void fetchData(String code, String access_token, String tokenRequestUrl,int maxRetries, OnResponseListener listener) {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        executor.execute(() -> {
-            int attempt = 0;
-            while (attempt < maxRetries) {
-                attempt++;
-                try {
-                    StringBuilder respStr = new StringBuilder();
-                    URL url = new URL(tokenRequestUrl);
-                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                    connection.setRequestMethod("POST");
-                    connection.setRequestProperty("Content-Type", "application/json");
-                    connection.setRequestProperty("Authorization", "Bearer " + access_token);
-                    connection.setRequestProperty("tr_cd", "t1102");
-                    connection.setRequestProperty("tr_cont", "N");
-                    connection.setRequestProperty("tr_cont_key", "");
-
-                    JSONObject innerdata = new JSONObject();
-                    innerdata.put("shcode", code);
-                    JSONObject jsonObject = new JSONObject();
-                    jsonObject.put("t1102InBlock", innerdata);
-
-                    byte[] body = jsonObject.toString().getBytes();
-                    connection.setFixedLengthStreamingMode(body.length);
-                    connection.setDoOutput(true);
-
-                    OutputStream outputStream = connection.getOutputStream();
-                    outputStream.write(body);
-                    outputStream.flush();
-
-                    int responseCode = connection.getResponseCode();
-                    if (responseCode >= 500 && responseCode < 600) {
-                        Log.w("FetchRetry", "서버 오류 (" + responseCode + "), 재시도 중... (" + attempt + "/" + maxRetries + ")");
-                        Thread.sleep(1000 * attempt); // 지수 백오프
-                        continue;
-                    }
-
-                    if (responseCode != 200) {
-                        throw new Exception("HTTP error code: " + responseCode);
-                    }
-
-                    try (BufferedReader reader = new BufferedReader(
-                            new InputStreamReader(connection.getInputStream(), "utf-8"))) {
-                        String line;
-                        while ((line = reader.readLine()) != null) {
-                            respStr.append(line);
-                        }
-                    }
-
-                    JSONObject jobj = new JSONObject(respStr.toString());
-                    JSONObject bodyobj = jobj.getJSONObject("t1102OutBlock");
-                    String name = bodyobj.getString("hname");
-                    String price = bodyobj.getString("price");
-
-                    // UI 스레드에서 콜백
-                    new Handler(Looper.getMainLooper()).post(() -> {
-                        listener.onSuccess(name, price);
-                    });
-                    return;
-                } catch (Exception e) {
-                    Log.e("FetchRetry", "시도 " + attempt + " 실패: " + e.getMessage());
-                    if (attempt == maxRetries) {
-                        new Handler(Looper.getMainLooper()).post(() -> {
-                            listener.onFailure(e);
-                        });
-                    } else {
-                        try {
-                            Thread.sleep(1000 * attempt); // 재시도 대기
-                        } catch (InterruptedException ie) {
-                            // 무시
-                        }
-                    }
-                }
-            }
-        });
-    }
-
     public interface OnResponseListener {
         void onSuccess( String name, String price);
         void onFailure(Exception e);
@@ -379,45 +304,13 @@ public class EBEST  {
         return result;
     }
 
-    public List<String> fetchCurrentList(ArrayList<String> codelist) throws InterruptedException {
-        String tokenRequestUrl = HOST + "stock/market-data";
-        List<String> response = Collections.synchronizedList(new ArrayList<>());
-        List<String> results = Collections.synchronizedList(new ArrayList<>());
-        AtomicInteger completedCount = new AtomicInteger(0);
-        int totalCount = codelist.size();
-
-        for (String code : codelist) {
-            fetchData(code, ACCESS_TOKEN, tokenRequestUrl,3,  new OnResponseListener() {
-                @Override
-                public void onSuccess(String name, String price) {
-                    Log.d("NetworkUtils", "현재가: " + price);
-                    response.add( name+" "+price);
-                    // 전체 완료 체크
-                    if (completedCount.incrementAndGet() == totalCount) {
-                        Log.d("FetchData", "✅ 모든 요청 완료!");
-                        for (String res : results) {
-                            Log.d("FetchData", res);
-                        }
-                    }
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    Log.e("NetworkUtils", "요청 실패", e);
-                    //Toast.makeText(context, "데이터 요청 실패", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
-        return response;
-    }
-
-
     public String fetchChart(int count, String code) throws ExecutionException, InterruptedException {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         String result = "";
 
         Callable<String> task = () -> {
-            return chart(count, code);
+            //return chart_minute(count,code);
+            return chart_day(count, code);
         };
 
         Future<String> future = executor.submit(task);
@@ -435,8 +328,29 @@ public class EBEST  {
     }
 
 
+    public String fetchChartMin(int count, String code) throws ExecutionException, InterruptedException {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        String result = "";
 
-    String chart(int count, String code)
+        Callable<String> task = () -> {
+            return chart_minute(count,code);
+        };
+
+        Future<String> future = executor.submit(task);
+        try {
+            result = future.get(); // Blocking call (waits for thread to finish)
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println("fail to get chart"); // Output: Data received!
+
+        executor.shutdown();
+        return result;
+    }
+
+    String chart_day(int count, String code)
     {
         int hoga=0;
         String hoga_str="";
@@ -534,6 +448,106 @@ public class EBEST  {
         return "ok";
     }
 
+
+    String chart_minute(int count, String code)
+    {
+        int hoga=0;
+        String hoga_str="";
+        // 주식 차트 조회 예제
+        String ContentsType="application/json;charset=utf-8";
+        // stock/market-data는 stock경로의 market-data db를 가르킴
+        String tokenRequestUrl = HOST + "stock/chart";
+        String[][] chart_data = new String[count][6];
+        chart_data[0][0]="";
+        //while(ACCESS_TOKEN.isBlank()){ };
+
+        try {
+            // Create the URL object
+            URL url = new URL(tokenRequestUrl);
+            HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", ContentsType);
+            connection.setRequestProperty("Authorization", "Bearer " + ACCESS_TOKEN);
+            connection.setRequestProperty("tr_cd", "t8412");
+            connection.setRequestProperty("tr_cont", "Y");
+            connection.setRequestProperty("tr_cont_key", "");
+            connection.setRequestProperty("mac_address", "");
+
+            JSONObject innerdata = new JSONObject();
+            innerdata.put("shcode", code);
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("t8412InBlock", innerdata);
+            innerdata.put("ncnt", 1);
+            jsonObject.put("t8412InBlock", innerdata);
+            innerdata.put("qrycnt", count);
+            jsonObject.put("t8412InBlock", innerdata);
+
+            String[][] inData = {{"nday","0"},{"sdate",todayDate},{"stime","090000"},
+                    {"edate",todayDate},{"etime","153000"},
+                    {"cts_date",todayDate},{"cts_time","090000"},
+                    {"comp_yn","N"}};
+            int len = inData.length;
+            for(int i =0;i<len;i++)
+            {
+                innerdata.put(inData[i][0], inData[i][1]);
+                jsonObject.put("t8412InBlock", innerdata);
+            }
+
+            byte[] body = jsonObject.toString().getBytes();
+            connection.setFixedLengthStreamingMode(body.length);
+            connection.setDoOutput(true);
+
+            OutputStream outputStream = connection.getOutputStream();
+            outputStream.write(body);
+            outputStream.flush();
+
+            int responseCode = connection.getResponseCode();
+            if (responseCode != 200) {
+                Log.e("NetworkUtils", "HTTP error code: " + responseCode);
+                return "";
+            }
+
+            Log.d("NetworkUtils", "Request body: " + jsonObject.toString());
+
+            // Read the response
+            StringBuilder respStr = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(connection.getInputStream(), "utf-8"))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    respStr.append(line);
+                    //Log.d("NetworkUtils", line);
+                }
+            }
+
+            // Parse JSON response
+            JSONObject jobj = new JSONObject(respStr.toString());
+            JSONObject bodyobj = jobj.getJSONObject("t8412OutBlock");
+            int rec_count = bodyobj.getInt("rec_count");
+            if(rec_count==0) return "";
+            JSONArray bodyobj_1 = jobj.getJSONArray("t8412OutBlock1");
+            //String date = bodyobj.getJSONObject(0).getString("date");
+            //hoga_str = bodyobj.getJSONObject(0).getString("close");
+            int read_count = bodyobj_1.length();
+            for(int i =0;i<read_count;i++) {
+                chart_data[i][0] = bodyobj_1.getJSONObject(i).getString("time");
+                chart_data[i][1] = bodyobj_1.getJSONObject(i).getString("open");
+                chart_data[i][2] = bodyobj_1.getJSONObject(i).getString("high");
+                chart_data[i][3] = bodyobj_1.getJSONObject(i).getString("low");
+                chart_data[i][4] = bodyobj_1.getJSONObject(i).getString("close");
+                chart_data[i][5] = bodyobj_1.getJSONObject(i).getString("jdiff_vol");
+            }
+
+            EXTFILE extfile = new EXTFILE();
+            extfile.writeOHLCV(code+"min",chart_data);
+            //Log.d("NetworkUtils", "날짜 : " + date + ", 종가 : " + hoga);
+
+        } catch (Exception e) {
+            Log.e("YourTag", "Error occurred", e);
+            return "";
+        }
+        return "ok";
+    }
 
     public int[][] fetchChart3(int count, String code) throws ExecutionException, InterruptedException {
         ExecutorService executor = Executors.newSingleThreadExecutor();
