@@ -149,7 +149,7 @@ public class HomeFragment extends Fragment {
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
-                buttonMinDN.setText("다운OK");
+                buttonMinDN.setText("MinOK");
 
             }
         });
@@ -166,7 +166,7 @@ public class HomeFragment extends Fragment {
             public void onClick(View v) {
                 try {
                     downloadChart(STOCKGROUP);
-                    buttonDN.setText("다운OK");
+                    buttonDN.setText("DayOK");
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }

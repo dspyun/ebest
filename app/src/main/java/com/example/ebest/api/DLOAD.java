@@ -32,7 +32,7 @@ public class DLOAD {
         while (!check_dload_finish(resultMap)){
             for (String stock : stocklist) {
                 if (resultMap.get(stock).isBlank()) {
-                    resultMap.put(stock, ebest.fetchCurrent(stock));
+                    resultMap.put(stock, ebest.threadCurrent(stock));
                 }
             }
         }
@@ -49,7 +49,7 @@ public class DLOAD {
             for (String stock : stocklist) {
                 if (resultMap.get(stock).isBlank()) {
                     try {
-                        resultMap.put(stock, ebest.fetchChartMin(count, stock));
+                        resultMap.put(stock, ebest.threadChartMin(count, stock));
                     } catch (ExecutionException e) {
                         throw new RuntimeException(e);
                     } catch (InterruptedException e) {
@@ -70,7 +70,7 @@ public class DLOAD {
             for (String stock : stocklist) {
                 if (resultMap.get(stock).isBlank()) {
                     try {
-                        resultMap.put(stock, ebest.fetchChart(count, stock));
+                        resultMap.put(stock, ebest.threadChart(count, stock));
                     } catch (ExecutionException e) {
                         throw new RuntimeException(e);
                     } catch (InterruptedException e) {

@@ -48,7 +48,7 @@
             android:layout_column="3"
             android:layout_columnWeight="1"
             android:layout_rowWeight="1"
-            android:text="Min보기" />
+            android:text="Min차트" />
 
 
         <EditText
@@ -62,38 +62,39 @@
             android:digits="0123456789"
             android:hint="일수"
             android:inputType="number"
-            android:text="200"
-            android:textSize="20sp" />
-
+            android:text="500"
+            android:textSize="16sp" />
         <Button
-            android:id="@+id/buttonDN"
+            android:id="@+id/buttonRead"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_row="1"
             android:layout_column="1"
             android:layout_columnWeight="1"
             android:layout_rowWeight="1"
-            android:text="다운로드" />
+            android:text="종목편집" />
 
         <Button
-            android:id="@+id/buttonChart"
+            android:id="@+id/buttonDN"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_row="1"
             android:layout_column="2"
             android:layout_columnWeight="1"
             android:layout_rowWeight="1"
-            android:text="차트보기" />
+            android:text="Day다운" />
 
         <Button
-            android:id="@+id/buttonRead"
+            android:id="@+id/buttonChart"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_row="1"
             android:layout_column="3"
             android:layout_columnWeight="1"
             android:layout_rowWeight="1"
-            android:text="종목편집" />
+            android:text="Day차트" />
+
+
 
     </GridLayout>
 

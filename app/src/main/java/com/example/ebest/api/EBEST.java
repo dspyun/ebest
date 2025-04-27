@@ -9,8 +9,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.ProtocolException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.io.OutputStream;
@@ -35,6 +37,7 @@ public class EBEST  {
     private static final String HOST = "https://openapi.ls-sec.co.kr:8080/";
     private static final String TOKEN_URL = HOST + "oauth2/token";
     private static final String GRANT_TYPE = "client_credentials";
+    private static final String ContentsType="application/json;charset=utf-8";
     private String APP_KEY = "";
     private String APP_SECRET = "";
     private static final String SCOPE = "oob";
@@ -46,7 +49,7 @@ public class EBEST  {
         key = extfile.read_key();
         APP_KEY = key[0];
         APP_SECRET = key[1];
-        fetchAccessToken();
+        threadAccessToken();
 
         LocalDate today = LocalDate.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
@@ -59,7 +62,7 @@ public class EBEST  {
         ACCESS_TOKEN = jsonObject.getString("access_token");
         System.out.println(ACCESS_TOKEN); // apple
     }
-    private void fetchAccessToken() {
+    private void threadAccessToken() {
         // Create a new thread to make the network request
         new Thread(new Runnable() {
             @Override
@@ -113,27 +116,38 @@ public class EBEST  {
         }).start();  // Start the thread
     }
 
+    HttpsURLConnection getConnection(URL url, String trade_code, String ContentsType)
+    {
+        HttpsURLConnection connection;
+        try {
+            connection = (HttpsURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        connection.setRequestProperty("Content-Type", ContentsType);
+        connection.setRequestProperty("Authorization", "Bearer " + ACCESS_TOKEN);
+        connection.setRequestProperty("tr_cd", trade_code);
+        connection.setRequestProperty("tr_cont", "N");
+        connection.setRequestProperty("tr_cont_key", "");
+
+        return connection;
+    }
+
+
     String hoga()
     {
+        // 주식 호가 조회 예제
         int hoga=0;
         String hoga_str="";
-        // 주식 호가 조회 예제
-        String ContentsType="application/json;charset=utf-8";
+
         // stock/market-data는 stock경로의 market-data db를 가르킴
         String tokenRequestUrl = HOST + "stock/market-data";
-
-        //while(ACCESS_TOKEN.isBlank()){ };
 
         try {
             // Create the URL object
             URL url = new URL(tokenRequestUrl);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Content-Type", ContentsType);
-            connection.setRequestProperty("Authorization", "Bearer " + ACCESS_TOKEN);
-            connection.setRequestProperty("tr_cd", "t1101");
-            connection.setRequestProperty("tr_cont", "N");
-            connection.setRequestProperty("tr_cont_key", "");
+            HttpsURLConnection connection = getConnection(url,"t1101",  ContentsType);
 
             JSONObject innerdata = new JSONObject();
             innerdata.put("shcode", "078020");
@@ -182,33 +196,19 @@ public class EBEST  {
         return hoga_str;
     }
 
-    private static final List<String> responses = Collections.synchronizedList(new ArrayList<>());
 
-    public interface OnResponseListener {
-        void onSuccess( String name, String price);
-        void onFailure(Exception e);
-    }
     String current(String code)
     {
-        int price=0;
-        String price_str="";
-        // 주식 호가 조회 예제
-        String ContentsType="application/json;charset=utf-8";
+        // 주식 현재가 조회 예제
+
         // stock/market-data는 stock경로의 market-data db를 가르킴
         String tokenRequestUrl = HOST + "stock/market-data";
         String result ="";
-        //while(ACCESS_TOKEN.isBlank()){ };
 
         try {
             // Create the URL object
             URL url = new URL(tokenRequestUrl);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Content-Type", ContentsType);
-            connection.setRequestProperty("Authorization", "Bearer " + ACCESS_TOKEN);
-            connection.setRequestProperty("tr_cd", "t1102");
-            connection.setRequestProperty("tr_cont", "N");
-            connection.setRequestProperty("tr_cont_key", "");
+            HttpsURLConnection connection = getConnection(url,"t1102",  ContentsType);
 
             JSONObject innerdata = new JSONObject();
             innerdata.put("shcode", code);
@@ -256,106 +256,12 @@ public class EBEST  {
         }
         return result;
     }
-    public String fetchHoGa(String code)
-    {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        String result="";
-        Callable<String> task = () -> {
-            String hoga_str="";
-            //hoga_str = hoga();
-            //chart();
-            hoga_str = current(code);
-            return hoga_str;
-        };
 
-        Future<String> future = executor.submit(task);
-
-        try {
-            result = future.get(); // Blocking call (waits for thread to finish)
-            System.out.println(result); // Output: Data received!
-        } catch (InterruptedException | ExecutionException e) {
-            Log.e("YourTag", "Error occurred", e);
-        }
-
-        executor.shutdown();
-        return result;
-    }
-
-    public String fetchCurrent(String code)
-    {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        String result = "";
-        Callable<String> task = () -> {
-            String current_str = "";
-            current_str = current(code);
-            return current_str;
-        };
-
-        Future<String> future = executor.submit(task);
-
-        try {
-            result = future.get(); // Blocking call (waits for thread to finish)
-            //System.out.println(result); // Output: Data received!
-        } catch (InterruptedException | ExecutionException e) {
-            Log.e("YourTag", "Error occurred", e);
-        }
-
-        executor.shutdown();
-        return result;
-    }
-
-    public String fetchChart(int count, String code) throws ExecutionException, InterruptedException {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        String result = "";
-
-        Callable<String> task = () -> {
-            //return chart_minute(count,code);
-            return chart_day(count, code);
-        };
-
-        Future<String> future = executor.submit(task);
-        try {
-            result = future.get(); // Blocking call (waits for thread to finish)
-        } catch (ExecutionException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        System.out.println("fail to get chart"); // Output: Data received!
-
-        executor.shutdown();
-        return result;
-    }
-
-
-    public String fetchChartMin(int count, String code) throws ExecutionException, InterruptedException {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        String result = "";
-
-        Callable<String> task = () -> {
-            return chart_minute(count,code);
-        };
-
-        Future<String> future = executor.submit(task);
-        try {
-            result = future.get(); // Blocking call (waits for thread to finish)
-        } catch (ExecutionException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        System.out.println("fail to get chart"); // Output: Data received!
-
-        executor.shutdown();
-        return result;
-    }
 
     String chart_day(int count, String code)
     {
-        int hoga=0;
-        String hoga_str="";
-        // 주식 차트 조회 예제
-        String ContentsType="application/json;charset=utf-8";
+        // 주식 일봉차트 조회 예제
+
         // stock/market-data는 stock경로의 market-data db를 가르킴
         String tokenRequestUrl = HOST + "stock/chart";
         String[][] chart_data = new String[count][6];
@@ -365,32 +271,23 @@ public class EBEST  {
         try {
             // Create the URL object
             URL url = new URL(tokenRequestUrl);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Content-Type", ContentsType);
-            connection.setRequestProperty("Authorization", "Bearer " + ACCESS_TOKEN);
-            connection.setRequestProperty("tr_cd", "t8410");
-            connection.setRequestProperty("tr_cont", "Y");
-            connection.setRequestProperty("tr_cont_key", "");
+            HttpsURLConnection connection = getConnection(url,"t8410",  ContentsType);
 
             JSONObject innerdata = new JSONObject();
             innerdata.put("shcode", code);
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("t8410InBlock", innerdata);
-            innerdata.put("gubun", "2");
-            jsonObject.put("t8410InBlock", innerdata);
             innerdata.put("qrycnt", count);
             jsonObject.put("t8410InBlock", innerdata);
-            innerdata.put("sdate", ""); //20250101
-            jsonObject.put("t8410InBlock", innerdata);
-            innerdata.put("edate", todayDate); // 25250330
-            jsonObject.put("t8410InBlock", innerdata);
-            innerdata.put("cts_date",todayDate ); // 25250330
-            jsonObject.put("t8410InBlock", innerdata);
-            innerdata.put("comp_yn", "N");
-            jsonObject.put("t8410InBlock", innerdata);
-            innerdata.put("sujung", "Y");
-            jsonObject.put("t8410InBlock", innerdata);
+
+            String[][] inData = {{"gubun","2"},{"sdate",""},{"edate",todayDate},
+                    {"cts_date",todayDate}, {"comp_yn","N"}, {"sujung","Y"}};
+            int len = inData.length;
+            for(int i =0;i<len;i++)
+            {
+                innerdata.put(inData[i][0], inData[i][1]);
+                jsonObject.put("t8410InBlock", innerdata);
+            }
 
             byte[] body = jsonObject.toString().getBytes();
             connection.setFixedLengthStreamingMode(body.length);
@@ -405,7 +302,6 @@ public class EBEST  {
                 Log.e("NetworkUtils", "HTTP error code: " + responseCode);
                 return "";
             }
-
 
             Log.d("NetworkUtils", "Request body: " + jsonObject.toString());
 
@@ -439,7 +335,7 @@ public class EBEST  {
 
             EXTFILE extfile = new EXTFILE();
             extfile.writeOHLCV(code,chart_data);
-            Log.d("NetworkUtils", "날짜 : " + date + ", 종가 : " + hoga);
+            Log.d("NetworkUtils", "날짜 : " + date);
 
         } catch (Exception e) {
             Log.e("YourTag", "Error occurred", e);
@@ -451,10 +347,8 @@ public class EBEST  {
 
     String chart_minute(int count, String code)
     {
-        int hoga=0;
-        String hoga_str="";
-        // 주식 차트 조회 예제
-        String ContentsType="application/json;charset=utf-8";
+        // 주식 분봉차트 조회 예제
+
         // stock/market-data는 stock경로의 market-data db를 가르킴
         String tokenRequestUrl = HOST + "stock/chart";
         String[][] chart_data = new String[count][6];
@@ -464,14 +358,7 @@ public class EBEST  {
         try {
             // Create the URL object
             URL url = new URL(tokenRequestUrl);
-            HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Content-Type", ContentsType);
-            connection.setRequestProperty("Authorization", "Bearer " + ACCESS_TOKEN);
-            connection.setRequestProperty("tr_cd", "t8412");
-            connection.setRequestProperty("tr_cont", "Y");
-            connection.setRequestProperty("tr_cont_key", "");
-            connection.setRequestProperty("mac_address", "");
+            HttpsURLConnection connection = getConnection(url,"t8412",  ContentsType);
 
             JSONObject innerdata = new JSONObject();
             innerdata.put("shcode", code);
@@ -549,37 +436,13 @@ public class EBEST  {
         return "ok";
     }
 
-    public int[][] fetchChart3(int count, String code) throws ExecutionException, InterruptedException {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        int[][] result = new int[1][1];
-        result[0][0] = 0;
-        int day_count = count;
-        Callable<int[][]> task = () -> {
-            int[][] chart_data = new int[3][500];
-            chart_data = chart3(day_count, code);
-            return chart_data;
-        };
 
-        Future<int[][]> future = executor.submit(task);
-        try {
-            result = future.get(); // Blocking call (waits for thread to finish)
-        } catch (ExecutionException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        System.out.println("fail to get chart"); // Output: Data received!
-
-        executor.shutdown();
-        return result;
-    }
-
-    int[][] chart3(int count, String code)
+    int[][] chartBuyer(int count, String code)
     {
         int hoga=0;
         String hoga_str="";
         // 주식 차트 조회 예제
-        String ContentsType="application/json;charset=utf-8";
+
         // stock/market-data는 stock경로의 market-data db를 가르킴
         String tokenRequestUrl = HOST + "stock/chart";
         int[][] chart_data = new int[3][count];
@@ -589,30 +452,22 @@ public class EBEST  {
         try {
             // Create the URL object
             URL url = new URL(tokenRequestUrl);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Content-Type", ContentsType);
-            connection.setRequestProperty("Authorization", "Bearer " + ACCESS_TOKEN);
-            connection.setRequestProperty("tr_cd", "t1665");
-            connection.setRequestProperty("tr_cont", "Y");
-            connection.setRequestProperty("tr_cont_key", "");
+            HttpsURLConnection connection = getConnection(url,"t1665",  ContentsType);
 
             JSONObject innerdata = new JSONObject();
             innerdata.put("market", "1");
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("t1665InBlock", innerdata);
-            innerdata.put("upcode", "001");
-            jsonObject.put("t1665InBlock", innerdata);
-            innerdata.put("gubun2", "1");
-            jsonObject.put("t1665InBlock", innerdata);
-            innerdata.put("gubun3", "1");
-            jsonObject.put("t1665InBlock", innerdata);
-            innerdata.put("from_date", "20250101");
-            jsonObject.put("t1665InBlock", innerdata);
-            innerdata.put("to_date", "20250330");
-            jsonObject.put("t1665InBlock", innerdata);
-            innerdata.put("exchgubun", "K");
-            jsonObject.put("t1665InBlock", innerdata);
+
+            String[][] inData = {{"upcode","001"},{"gubun2","1"},{"gubun3","1"},
+                    {"from_date","20250101"},{"to_date",todayDate},
+                    {"exchgubun","K"}};
+            int len = inData.length;
+            for(int i =0;i<len;i++)
+            {
+                innerdata.put(inData[i][0], inData[i][1]);
+                jsonObject.put("t1665InBlock", innerdata);
+            }
 
             byte[] body = jsonObject.toString().getBytes();
             connection.setFixedLengthStreamingMode(body.length);
@@ -661,6 +516,121 @@ public class EBEST  {
             Log.e("YourTag", "Error occurred", e);
         }
         return chart_data;
+    }
+
+    public String threadHoGa(String code)
+    {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        String result="";
+        Callable<String> task = () -> {
+            String hoga_str="";
+            //hoga_str = hoga();
+            //chart();
+            hoga_str = current(code);
+            return hoga_str;
+        };
+
+        Future<String> future = executor.submit(task);
+
+        try {
+            result = future.get(); // Blocking call (waits for thread to finish)
+            System.out.println(result); // Output: Data received!
+        } catch (InterruptedException | ExecutionException e) {
+            Log.e("YourTag", "Error occurred", e);
+        }
+
+        executor.shutdown();
+        return result;
+    }
+
+    public String threadCurrent(String code)
+    {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        String result = "";
+        Callable<String> task = () -> {
+            String current_str = "";
+            current_str = current(code);
+            return current_str;
+        };
+
+        Future<String> future = executor.submit(task);
+
+        try {
+            result = future.get(); // Blocking call (waits for thread to finish)
+            //System.out.println(result); // Output: Data received!
+        } catch (InterruptedException | ExecutionException e) {
+            Log.e("YourTag", "Error occurred", e);
+        }
+
+        executor.shutdown();
+        return result;
+    }
+
+    public String threadChart(int count, String code) throws ExecutionException, InterruptedException {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        String result = "";
+
+        Callable<String> task = () -> {
+            return chart_day(count, code);
+        };
+
+        Future<String> future = executor.submit(task);
+        try {
+            result = future.get(); // Blocking call (waits for thread to finish)
+        } catch (ExecutionException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println("fail to get chart"); // Output: Data received!
+
+        executor.shutdown();
+        return result;
+    }
+
+
+    public String threadChartMin(int count, String code) throws ExecutionException, InterruptedException {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        String result = "";
+
+        Callable<String> task = () -> {
+            return chart_minute(count,code);
+        };
+
+        Future<String> future = executor.submit(task);
+        try {
+            result = future.get(); // Blocking call (waits for thread to finish)
+        } catch (ExecutionException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println("fail to get chart"); // Output: Data received!
+
+        executor.shutdown();
+        return result;
+    }
+
+
+    public int[][] threadChartBuyer(int count, String code) throws ExecutionException, InterruptedException {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        int[][] result = new int[1][1];
+        result[0][0] = 0;
+        int day_count = count;
+        Callable<int[][]> task = () -> {
+            int[][] chart_data = new int[3][500];
+            chart_data = chartBuyer(day_count, code);
+            return chart_data;
+        };
+
+        Future<int[][]> future = executor.submit(task);
+        try {
+            result = future.get(); // Blocking call (waits for thread to finish)
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println("fail to get chart"); // Output: Data received!
+
+        executor.shutdown();
+        return result;
     }
 }
 
