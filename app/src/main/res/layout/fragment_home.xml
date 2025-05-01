@@ -22,7 +22,7 @@
             android:spinnerMode="dropdown"
             android:textSize="30sp"/>
         <Button
-            android:id="@+id/btDummy1"
+            android:id="@+id/btCurrent"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_row="0"
@@ -38,7 +38,7 @@
             android:layout_column="2"
             android:layout_columnWeight="1"
             android:layout_rowWeight="1"
-            android:text="Min다운" />
+            android:text="분봉다운" />
 
         <Button
             android:id="@+id/btMinChart"
@@ -48,7 +48,7 @@
             android:layout_column="3"
             android:layout_columnWeight="1"
             android:layout_rowWeight="1"
-            android:text="Min차트" />
+            android:text="분봉차트" />
 
 
         <EditText
@@ -82,7 +82,7 @@
             android:layout_column="2"
             android:layout_columnWeight="1"
             android:layout_rowWeight="1"
-            android:text="Day다운" />
+            android:text="일봉다운" />
 
         <Button
             android:id="@+id/buttonChart"
@@ -92,9 +92,7 @@
             android:layout_column="3"
             android:layout_columnWeight="1"
             android:layout_rowWeight="1"
-            android:text="Day차트" />
-
-
+            android:text="일봉차트" />
 
     </GridLayout>
 

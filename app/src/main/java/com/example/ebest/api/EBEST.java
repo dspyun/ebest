@@ -17,6 +17,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.io.OutputStream;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -197,6 +198,74 @@ public class EBEST  {
     }
 
 
+    String codelist()
+    {
+        // 주식 호가 조회 예제
+        int hoga=0;
+        String hoga_str="";
+
+        // stock/market-data는 stock경로의 market-data db를 가르킴
+        String tokenRequestUrl = HOST + "stock/etc";
+
+        try {
+            // Create the URL object
+            URL url = new URL(tokenRequestUrl);
+            HttpsURLConnection connection = getConnection(url,"t8430",  ContentsType);
+
+            JSONObject innerdata = new JSONObject();
+            innerdata.put("gubun", "1");
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("t8430InBlock", innerdata);
+
+            byte[] body = jsonObject.toString().getBytes();
+            connection.setFixedLengthStreamingMode(body.length);
+            connection.setDoOutput(true);
+
+            OutputStream outputStream = connection.getOutputStream();
+            outputStream.write(body);
+            outputStream.flush();
+
+            int responseCode = connection.getResponseCode();
+            if (responseCode != 200) {
+                Log.e("NetworkUtils", "HTTP error code: " + responseCode);
+                return "";
+            }
+
+            Log.d("NetworkUtils", "Request body: " + jsonObject.toString());
+
+            // Read the response
+            StringBuilder respStr = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(connection.getInputStream(), "utf-8"))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    respStr.append(line);
+                    //Log.d("NetworkUtils", line);
+                }
+            }
+
+            // Parse JSON response
+            JSONObject jobj = new JSONObject(respStr.toString());
+            JSONArray bodyobj = jobj.getJSONArray("t8430OutBlock");
+
+            int read_count = bodyobj.length();
+            String[][] chart_data = new String[read_count][2];
+            for(int i =0;i<read_count;i++) {
+                chart_data[i][0] = bodyobj.getJSONObject(i).getString("shcode");
+                chart_data[i][1] = bodyobj.getJSONObject(i).getString("hname");
+            }
+            EXTFILE extfile = new EXTFILE();
+            extfile.writeCodelist(chart_data);
+            Log.d("NetworkUtils",  " 1단계호가 ");
+            return "OK";
+        } catch (Exception e) {
+            Log.e("YourTag", "Error occurred", e);
+        }
+        return "";
+    }
+
+
+
     String current(String code)
     {
         // 주식 현재가 조회 예제
@@ -308,7 +377,7 @@ public class EBEST  {
             // Read the response
             StringBuilder respStr = new StringBuilder();
             try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(connection.getInputStream(), "utf-8"))) {
+                new InputStreamReader(connection.getInputStream(), "utf-8"))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     respStr.append(line);
@@ -543,94 +612,7 @@ public class EBEST  {
         return result;
     }
 
-    public String threadCurrent(String code)
-    {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        String result = "";
-        Callable<String> task = () -> {
-            String current_str = "";
-            current_str = current(code);
-            return current_str;
-        };
-
-        Future<String> future = executor.submit(task);
-
-        try {
-            result = future.get(); // Blocking call (waits for thread to finish)
-            //System.out.println(result); // Output: Data received!
-        } catch (InterruptedException | ExecutionException e) {
-            Log.e("YourTag", "Error occurred", e);
-        }
-
-        executor.shutdown();
-        return result;
-    }
-
-    public String threadChart(int count, String code) throws ExecutionException, InterruptedException {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        String result = "";
-
-        Callable<String> task = () -> {
-            return chart_day(count, code);
-        };
-
-        Future<String> future = executor.submit(task);
-        try {
-            result = future.get(); // Blocking call (waits for thread to finish)
-        } catch (ExecutionException | InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        System.out.println("fail to get chart"); // Output: Data received!
-
-        executor.shutdown();
-        return result;
-    }
 
 
-    public String threadChartMin(int count, String code) throws ExecutionException, InterruptedException {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        String result = "";
-
-        Callable<String> task = () -> {
-            return chart_minute(count,code);
-        };
-
-        Future<String> future = executor.submit(task);
-        try {
-            result = future.get(); // Blocking call (waits for thread to finish)
-        } catch (ExecutionException | InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        System.out.println("fail to get chart"); // Output: Data received!
-
-        executor.shutdown();
-        return result;
-    }
-
-
-    public int[][] threadChartBuyer(int count, String code) throws ExecutionException, InterruptedException {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        int[][] result = new int[1][1];
-        result[0][0] = 0;
-        int day_count = count;
-        Callable<int[][]> task = () -> {
-            int[][] chart_data = new int[3][500];
-            chart_data = chartBuyer(day_count, code);
-            return chart_data;
-        };
-
-        Future<int[][]> future = executor.submit(task);
-        try {
-            result = future.get(); // Blocking call (waits for thread to finish)
-        } catch (ExecutionException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        System.out.println("fail to get chart"); // Output: Data received!
-
-        executor.shutdown();
-        return result;
-    }
 }
 

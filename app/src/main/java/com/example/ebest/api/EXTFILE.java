@@ -44,7 +44,6 @@ public class EXTFILE {
     {
 
         ArrayList<String> stocklist = new ArrayList<String>();
-        int i =0;
         File file = new File(Environment.getExternalStorageDirectory(), "/ebest/" + stockgroup);
         try {
             FileInputStream fis = new FileInputStream(file);
@@ -52,7 +51,6 @@ public class EXTFILE {
             String line;
             while ((line = reader.readLine()) != null) {
                 stocklist.add(line);
-                i++;
             }
             fis.close();
 
@@ -79,7 +77,6 @@ public class EXTFILE {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
     public int[] readOHLCV(String stockcode)
     {
@@ -112,4 +109,50 @@ public class EXTFILE {
         // ArrayList를 int[] 배열로 변환
         return closeValues.stream().mapToInt(i -> i).toArray();
     }
+
+
+    public void writeCodelist(String[][] data)
+    {
+        String fileName = Environment.getExternalStorageDirectory() + "/ebest/codelist.csv";
+        File file = new File(fileName);
+        String header = "code,hname";
+
+        // 없으면 생성하고, 있으면 덮어쓰고
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName, false))) {
+            writer.write(header);
+            writer.newLine();
+            for (String[] row : data) {
+                writer.write(String.join(",", row));
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public ArrayList<String> readCodelist()
+    {
+        String fileName = Environment.getExternalStorageDirectory() + "/ebest/codelist.csv";
+
+        ArrayList<String> stocklist = new ArrayList<String>();
+        File file = new File(fileName);
+        try {
+            FileInputStream fis = new FileInputStream(file);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
+            String line="";
+            // 첫줄은 헤드라인이므로 건너뜀
+            reader.readLine();
+            while ((line = reader.readLine()) != null) {
+                String[] values = line.split(",");
+                stocklist.add(values[0]);
+            }
+            fis.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return stocklist;
+    }
+
 }

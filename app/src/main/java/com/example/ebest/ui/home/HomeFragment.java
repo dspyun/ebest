@@ -81,7 +81,7 @@ public class HomeFragment extends Fragment {
     LinearLayout chartContainer;
     int index = 0;
     TextView stockview, stockinfo;
-    Button buttonRead,buttonDN,buttonChart,buttonDummy1,buttonMinDN, buttonMinChart;
+    Button buttonRead,buttonDN,buttonChart,buttonCurrent,buttonMinDN, buttonMinChart;
     EditText editText;
     Spinner fileSpinner;
 
@@ -114,7 +114,7 @@ public class HomeFragment extends Fragment {
         buttonChart = binding.buttonChart;
         editText = binding.editText;
         fileSpinner = binding.fileSpinner;
-        buttonDummy1 = binding.btDummy1;
+        buttonCurrent = binding.btCurrent;
         buttonMinDN = binding.btMinDN;
         buttonMinChart = binding.btMinChart;
 
@@ -122,6 +122,7 @@ public class HomeFragment extends Fragment {
 
         day_count = Integer.parseInt(String.valueOf(editText.getText()));
 
+        // edit stock item list
         Button btnEdit = binding.buttonRead;
         btnEdit.setOnClickListener(v -> {
             Intent intent = new Intent(requireContext(), StockEdit.class);
@@ -145,7 +146,7 @@ public class HomeFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 try {
-                    downloadChartMin(STOCKGROUP);
+                    dl_minChart(STOCKGROUP);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -154,7 +155,7 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        buttonDummy1.setOnClickListener(new View.OnClickListener() {
+        buttonCurrent.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 addChartInfo();
@@ -165,7 +166,7 @@ public class HomeFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 try {
-                    downloadChart(STOCKGROUP);
+                    dl_dayChart(STOCKGROUP);
                     buttonDN.setText("DayOK");
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
@@ -248,17 +249,17 @@ public class HomeFragment extends Fragment {
 
         });
     }
-    public void downloadChart(String stocklist) throws InterruptedException {
+    public void dl_dayChart(String stocklist) throws InterruptedException {
 
         day_count = Integer.parseInt(String.valueOf(editText.getText()));
         DLOAD dload = new DLOAD(STOCKGROUP);
-        dload.chartList(day_count);
+        dload.threadChartDayList(day_count);
     }
-    public void downloadChartMin(String stocklist) throws InterruptedException {
+    public void dl_minChart(String stocklist) throws InterruptedException {
 
         day_count = Integer.parseInt(String.valueOf(editText.getText()));
         DLOAD dload = new DLOAD(STOCKGROUP);
-        dload.chartminList(day_count);
+        dload.threadChartMinList(day_count);
     }
     public void ShowChart() throws InterruptedException {
         day_count = Integer.parseInt(String.valueOf(editText.getText()));
@@ -301,7 +302,7 @@ public class HomeFragment extends Fragment {
 
     private void addChartInfo() {
         DLOAD dload = new DLOAD(STOCKGROUP);
-        currentPriceMap = dload.CurrentPriceList();
+        currentPriceMap = dload.threadCurrentPriceList();
 
         for (int i =0;i<stocklist.size();i++) {
             String stock = stocklist.get(i);
