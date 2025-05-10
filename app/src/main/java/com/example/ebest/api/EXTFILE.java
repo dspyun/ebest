@@ -12,6 +12,7 @@ import androidx.core.content.ContextCompat;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class EXTFILE {
 
@@ -40,24 +41,50 @@ public class EXTFILE {
         return key;
     }
 
-    public ArrayList<String> read_stocklist(String stockgroup)
+    public ArrayList<String> read_stocklist(String filename)
     {
 
-        ArrayList<String> stocklist = new ArrayList<String>();
-        File file = new File(Environment.getExternalStorageDirectory(), "/ebest/" + stockgroup);
+        ArrayList<String> resultArray = new ArrayList<String>();
+        File file = new File(Environment.getExternalStorageDirectory(), "/ebest/" + filename);
         try {
             FileInputStream fis = new FileInputStream(file);
             BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
             String line;
             while ((line = reader.readLine()) != null) {
-                stocklist.add(line);
+                String[] values = line.split(",");
+                resultArray.add(values[0]);
             }
             fis.close();
 
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return stocklist;
+        return resultArray;
+    }
+
+    public ArrayList<String> read_buyprice(String filename)
+    {
+
+        ArrayList<String> resultArray = new ArrayList<String>();
+        File file = new File(Environment.getExternalStorageDirectory(), "/ebest/" + filename);
+        try {
+            FileInputStream fis = new FileInputStream(file);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] values = line.split(",");
+                if(values.length > 1) {
+                    resultArray.add(values[1]);
+                } else {
+                    resultArray.add("0");
+                }
+            }
+            fis.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return resultArray;
     }
 
     public void writeOHLCV(String stockcode, String[][] data)
@@ -155,4 +182,39 @@ public class EXTFILE {
         return stocklist;
     }
 
+    public String findStockName(String targetCode)
+    {
+        String fileName = Environment.getExternalStorageDirectory() + "/ebest/codelist.csv";
+        String line;
+        HashMap<String, String> stockMap = new HashMap<>();
+
+            try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+            // 첫 줄(헤더)을 읽고 버림
+            String header = br.readLine();
+
+            while ((line = br.readLine()) != null) {
+                // 각 라인을 쉼표로 분할
+                String[] values = line.split(",", -1);
+                if (values.length >= 2) {
+                    String code = values[0].trim();
+                    String name = values[1].trim();
+                    stockMap.put(code, name);
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("파일 읽기 오류: " + e.getMessage());
+            return "";
+        }
+
+        // 검색 예시
+        String resultString;
+        if (stockMap.containsKey(targetCode)) {
+            resultString = stockMap.get(targetCode);
+            System.out.println("주식이름: " + resultString);
+        } else {
+            System.out.println("해당 주식코드를 찾을 수 없습니다: " + targetCode);
+            resultString = "";
+        }
+        return resultString;
+    }
 }

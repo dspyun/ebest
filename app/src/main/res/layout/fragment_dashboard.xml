@@ -95,7 +95,11 @@
             android:text="일봉차트" />
 
     </GridLayout>
-
+    <TextView
+        android:id="@+id/dashtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="전종목 차트 상관 관계 분석" />
     <ScrollView
         android:id="@+id/scrollChart1"
         android:layout_width="match_parent"

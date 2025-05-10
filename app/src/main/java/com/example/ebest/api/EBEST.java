@@ -264,8 +264,7 @@ public class EBEST  {
         return "";
     }
 
-
-
+    // return string : "name, price"
     String current(String code)
     {
         // 주식 현재가 조회 예제

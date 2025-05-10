@@ -1,22 +1,134 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.notifications.NotificationsFragment">
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/text_notifications"
+    <GridLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
-        android:textAlignment="center"
-        android:textSize="20sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-</androidx.constraintlayout.widget.ConstraintLayout>
+        android:columnCount="5"
+        android:rowCount="2">
+
+        <Spinner
+            android:id="@+id/noti_fileSpinner"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_row="0"
+            android:layout_column="0"
+            android:layout_columnSpan="2"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:spinnerMode="dropdown"
+            android:textSize="30sp"/>
+        <EditText
+            android:id="@+id/noti_editText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_row="0"
+            android:layout_column="2"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:digits="0123456789"
+            android:hint="일수"
+            android:inputType="number"
+            android:padding="0dp"
+            android:minHeight="0dp"
+            android:minWidth="0dp"
+            android:text="500"
+            android:textSize="16sp" />
+        <Button
+            android:id="@+id/noti_editTarget"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_row="0"
+            android:layout_column="3"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:padding="0dp"
+            android:text="파일편집" />
+        <Button
+            android:id="@+id/noti_dummy"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_row="0"
+            android:layout_column="4"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:padding="0dp"
+            android:text="더미" />
+        <Button
+            android:id="@+id/noti_minDN"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_row="1"
+            android:layout_column="0"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:padding="0dp"
+            android:text="분봉다운" />
+
+        <Button
+            android:id="@+id/noti_minchart"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_row="1"
+            android:layout_column="1"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:padding="0dp"
+            android:text="분봉보기" />
+
+        <Button
+            android:id="@+id/noti_dayDN"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_row="1"
+            android:layout_column="2"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:padding="0dp"
+            android:text="일봉다운" />
+        <Button
+            android:id="@+id/noti_daychart"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_row="1"
+            android:layout_column="3"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:padding="0dp"
+            android:text="일봉보기" />
+        <Button
+            android:id="@+id/noti_buyprice"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_row="1"
+            android:layout_column="4"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:padding="0dp"
+            android:text="목표보기" />
+    </GridLayout>
+    <TextView
+        android:id="@+id/notititle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="목표가 관리화면" />
+    <ScrollView
+        android:id="@+id/notiChart"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fillViewport="true"
+        android:paddingBottom="50dp">
+
+        <LinearLayout
+            android:id="@+id/notiContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+    </ScrollView>  <!-- fillViewport 설정을 통해 자식이 스크롤 뷰의 크기에 꽉 차게 함 -->
+
+</LinearLayout>

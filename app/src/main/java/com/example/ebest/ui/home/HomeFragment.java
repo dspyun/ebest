@@ -77,19 +77,18 @@ import java.util.List;
 public class HomeFragment extends Fragment {
 
     private FragmentHomeBinding binding;
-    LineChart lineChart;
+
     LinearLayout chartContainer;
     int index = 0;
-    TextView stockview, stockinfo;
-    Button buttonRead,buttonDN,buttonChart,buttonCurrent,buttonMinDN, buttonMinChart;
+    Button btEditFile,btDayDown,btDayChart,buttonCurrent,btMinDown, btMinChart,btBuyPrice;
     EditText editText;
     Spinner fileSpinner;
 
-    String STOCKGROUP;
+    String SelectedFile;
 
     EBEST ebest = new EBEST();
     EXTFILE extfile = new EXTFILE();
-    ArrayList<String> stocklist;
+    ArrayList<String> stocklist_in_selectedFile;
     HashMap<String, String> currentPriceMap = new HashMap<>();
     int day_count;
 
@@ -107,50 +106,47 @@ public class HomeFragment extends Fragment {
         }
 
         //WindowCompat.setDecorFitsSystemWindows(requireActivity().getWindow(), false);
-
-        buttonRead = binding.buttonRead;
-        buttonDN = binding.buttonDN;
-        chartContainer = binding.chartContainer;
-        buttonChart = binding.buttonChart;
-        editText = binding.editText;
         fileSpinner = binding.fileSpinner;
+        editText = binding.homeEditPeriod;
+        btEditFile = binding.homeEditTarget;
+        btMinDown = binding.btMinDN;
+        btMinChart = binding.btMinChart;
+        btDayDown = binding.homeBtDayDN;
+        btDayChart = binding.homeBtDayChart;
         buttonCurrent = binding.btCurrent;
-        buttonMinDN = binding.btMinDN;
-        buttonMinChart = binding.btMinChart;
-
+        chartContainer = binding.chartContainer;
         loadFilesIntoSpinner();
 
         day_count = Integer.parseInt(String.valueOf(editText.getText()));
 
         // edit stock item list
-        Button btnEdit = binding.buttonRead;
-        btnEdit.setOnClickListener(v -> {
+        btEditFile.setOnClickListener(v -> {
             Intent intent = new Intent(requireContext(), StockEdit.class);
-            intent.putExtra("file_name", STOCKGROUP);
+            intent.putExtra("file_name", SelectedFile);
             startActivity(intent);
         });
 
-
-        buttonMinChart.setOnClickListener(new View.OnClickListener() {
+        btMinChart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 try {
                     ShowMinChart();
+                    addChartInfo();
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }
         });
 
-        buttonMinDN.setOnClickListener(new View.OnClickListener() {
+        btMinDown.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 try {
-                    dl_minChart(STOCKGROUP);
+                    dl_minChart(SelectedFile);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
-                buttonMinDN.setText("MinOK");
+                btMinDown.setText("MinOK");
 
             }
         });
@@ -162,23 +158,24 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        buttonDN.setOnClickListener(new View.OnClickListener() {
+        btDayDown.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 try {
-                    dl_dayChart(STOCKGROUP);
-                    buttonDN.setText("DayOK");
+                    dl_dayChart(SelectedFile);
+                    btDayDown.setText("DayOK");
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }
         });
 
-        buttonChart.setOnClickListener(new View.OnClickListener() {
+        btDayChart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 try {
                     ShowChart();
+                    addChartInfo();
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -222,7 +219,7 @@ public class HomeFragment extends Fragment {
             for (File file : files) {
                 if (file.isFile()) {
                     String fname = file.getName();
-                    if(!fname.equals("key.txt"))
+                    if(!fname.equals("key.txt") && !fname.equals("codelist.csv") )
                         fileNames.add(file.getName());
                 }
             }
@@ -238,7 +235,7 @@ public class HomeFragment extends Fragment {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view,
                                        int position, long id) {
-                STOCKGROUP = fileNames.get(position);
+                SelectedFile = fileNames.get(position);
 
             }
 
@@ -252,23 +249,23 @@ public class HomeFragment extends Fragment {
     public void dl_dayChart(String stocklist) throws InterruptedException {
 
         day_count = Integer.parseInt(String.valueOf(editText.getText()));
-        DLOAD dload = new DLOAD(STOCKGROUP);
+        DLOAD dload = new DLOAD(SelectedFile);
         dload.threadChartDayList(day_count);
     }
     public void dl_minChart(String stocklist) throws InterruptedException {
 
         day_count = Integer.parseInt(String.valueOf(editText.getText()));
-        DLOAD dload = new DLOAD(STOCKGROUP);
+        DLOAD dload = new DLOAD(SelectedFile);
         dload.threadChartMinList(day_count);
     }
     public void ShowChart() throws InterruptedException {
         day_count = Integer.parseInt(String.valueOf(editText.getText()));
 
-        stocklist = extfile.read_stocklist(STOCKGROUP);
+        stocklist_in_selectedFile = extfile.read_stocklist(SelectedFile);
         // before add, remove all old chart
         chartContainer.removeAllViews();
 
-        for (String stock : stocklist) {
+        for (String stock : stocklist_in_selectedFile) {
             int[][] price3 = new int[3][day_count];
             int[] price  = extfile.readOHLCV(stock);
             addChart(day_count,price,stock);
@@ -277,11 +274,11 @@ public class HomeFragment extends Fragment {
     public void ShowMinChart() throws InterruptedException {
         day_count = Integer.parseInt(String.valueOf(editText.getText()));
 
-        stocklist = extfile.read_stocklist(STOCKGROUP);
+        stocklist_in_selectedFile = extfile.read_stocklist(SelectedFile);
         // before add, remove all old chart
         chartContainer.removeAllViews();
 
-        for (String stock : stocklist) {
+        for (String stock : stocklist_in_selectedFile) {
             int[][] price3 = new int[3][day_count];
             int[] price  = extfile.readOHLCV(stock+"min");
             addChart(day_count,price,stock);
@@ -300,16 +297,50 @@ public class HomeFragment extends Fragment {
         chartContainer.addView(chart);
     }
 
-    private void addChartInfo() {
-        DLOAD dload = new DLOAD(STOCKGROUP);
-        currentPriceMap = dload.threadCurrentPriceList();
+    public void addChartInfoDetail(LineChart chart, String stockname, String current_price, String buy_price)
+    {
+        float max_price = Float.MIN_VALUE;
 
-        for (int i =0;i<stocklist.size();i++) {
-            String stock = stocklist.get(i);
-            String current_info = currentPriceMap.get(stock);
-            String[] info = current_info.split(",");
+        LineData lineData = chart.getData();
+        LineDataSet dataSet = (LineDataSet) lineData.getDataSetByIndex(0); // 첫 번째 데이터셋
+
+        // get last price
+        int entry_size = dataSet.getEntryCount();
+        Entry entry = dataSet.getEntryForIndex(entry_size-1); // 인덱스 마지막 엔트리
+        float last_price = entry.getY();
+
+        // get max price
+        if (lineData != null && lineData.getDataSetCount() > 0) {
+            for (int i = 0; i < dataSet.getEntryCount(); i++) {
+                float yy = dataSet.getEntryForIndex(i).getY();
+                if (yy > max_price) {
+                    max_price = yy;
+                }
+            }
+        }
+
+        String percent = percent_value(last_price,max_price);
+        chart.getLegend().setTextColor(Color.YELLOW); // stock prices
+        String info = "(" + stockname + ")" + current_price + " " + percent;
+        info += "(buy price : "+buy_price+")";
+        chart.getDescription().setText(info);
+        dataSet.setLabel(info);
+        lineData = new LineData(dataSet);
+        chart.setData(lineData);
+    }
+    private void addChartInfo() {
+        HashMap<String, String> currentPriceMap = new HashMap<>();
+        ArrayList<String> buypricelist = new ArrayList<>();
+        buypricelist = extfile.read_buyprice(SelectedFile);
+
+        for (int i =0;i<stocklist_in_selectedFile.size();i++) {
+            String stock = stocklist_in_selectedFile.get(i);
+            ArrayList<String> info = new ArrayList<>();
+            info.add(stock);
+            info.add(extfile.findStockName(stock));
             LineChart chart = (LineChart) chartContainer.getChildAt(i);
-            info_linechart(chart,stock, info[0], info[1]);
+
+            addChartInfoDetail(chart,stock, info.get(1), buypricelist.get(i));
             chart.invalidate(); // 차트 갱신
         }
         chartContainer.invalidate();
@@ -360,30 +391,10 @@ public class HomeFragment extends Fragment {
 
         chart.animateX(1000);
     }
-
-    public void info_linechart(LineChart chart, String stock_no, String stockname, String current_price)
+    public String percent_value(float yesterday_price, float c_price)
     {
-        LineData lineData = chart.getData();
-        LineDataSet dataSet = (LineDataSet) lineData.getDataSetByIndex(0); // 첫 번째 데이터셋
-        int last_close = dataSet.getEntryCount();
-        Entry entry = dataSet.getEntryForIndex(last_close-1); // 인덱스 마지막 엔트리
-        int x = (int)entry.getX();
-        int y = (int)entry.getY();
-
-        String percent = percent_value(y,current_price);
-        chart.getLegend().setTextColor(Color.YELLOW); // stock prices
-        String info = stockname + " (" + stock_no + ") " + current_price + " " + percent;
-        chart.getDescription().setText(info);
-        dataSet.setLabel(info);
-        lineData = new LineData(dataSet);
-        chart.setData(lineData);
-    }
-
-    public String percent_value(int yesterday_price, String c_price)
-    {
-        int current_price = Integer.parseInt(c_price);
-        int result = 100*current_price/yesterday_price;
-        return String.valueOf(current_price-yesterday_price) + " " + String.valueOf(result-100) +"%";
+        float result = 100*yesterday_price/c_price;
+        return String.valueOf((int)result)+"%";
     }
 
     @Override

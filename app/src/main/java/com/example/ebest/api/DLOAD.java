@@ -49,7 +49,7 @@ public class DLOAD {
             while (!check_dload_finish(resultMap, stocklist)) {
                 for (String stock : stocklist) {
                     if (resultMap.get(stock).isBlank()) {
-                        String result1 = ebest.current(stock);;;
+                        String result1 = ebest.current(stock);
                         if(result1.isBlank()) {
                             Thread.sleep(1000);
                             continue;
