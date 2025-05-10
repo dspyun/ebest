@@ -308,6 +308,7 @@ public class NotificationsFragment extends Fragment {
 //                }
 //            }
 //        }
+
         fileNames.add("배당성장.txt");
         ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(),
                 android.R.layout.simple_spinner_dropdown_item, fileNames);
