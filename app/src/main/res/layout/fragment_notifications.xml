@@ -78,7 +78,7 @@
             android:layout_columnWeight="1"
             android:layout_rowWeight="1"
             android:padding="0dp"
-            android:text="분봉보기" />
+            android:text="분봉차트" />
 
         <Button
             android:id="@+id/noti_dayDN"
@@ -99,7 +99,7 @@
             android:layout_columnWeight="1"
             android:layout_rowWeight="1"
             android:padding="0dp"
-            android:text="일봉보기" />
+            android:text="일봉차트" />
         <Button
             android:id="@+id/noti_buyprice"
             android:layout_width="0dp"
