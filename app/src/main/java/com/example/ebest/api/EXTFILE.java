@@ -24,7 +24,7 @@ public class EXTFILE {
     public String[] read_key()
     {
         String[] key = new String[2];
-        File file = new File(Environment.getExternalStorageDirectory(), "/ebest/key.txt");
+        File file = new File(Environment.getExternalStorageDirectory(), "/ebest/key04.txt");
         try {
             FileInputStream fis = new FileInputStream(file);
             BufferedReader reader = new BufferedReader(new InputStreamReader(fis));

@@ -1,6 +1,4 @@
-package com.example.ebest.ui.home;
-
-import static android.content.Context.MODE_PRIVATE;
+package com.example.ebest.ui.onedepth;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -16,7 +14,6 @@ import com.example.ebest.R;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;

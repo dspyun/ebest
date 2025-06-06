@@ -1,79 +1,41 @@
 package com.example.ebest.ui.home;
 
-import static android.content.Context.MODE_PRIVATE;
-
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.graphics.Color;
-import android.net.NetworkInfo;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ScrollView;
 import android.widget.Spinner;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 //import com.example.ebest.Manifest;
-import com.example.ebest.MainActivity;
-import com.example.ebest.R;
 import com.example.ebest.api.DLOAD;
 import com.example.ebest.api.EBEST;
 import com.example.ebest.api.EXTFILE;
 import com.example.ebest.databinding.FragmentHomeBinding;
 import com.example.ebest.ui.common.CHART;
-import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.components.XAxis;
-import com.github.mikephil.charting.data.Entry;
-import com.github.mikephil.charting.data.LineData;
-import com.github.mikephil.charting.data.LineDataSet;
+import com.example.ebest.ui.onedepth.Inform;
+import com.example.ebest.ui.onedepth.StockEdit;
+import com.example.ebest.ui.onedepth.news;
 
-import android.content.Context;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.concurrent.ExecutionException;
 
 import android.widget.LinearLayout;
 import android.widget.Toast;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-
-import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.data.Entry;
-import com.github.mikephil.charting.data.LineData;
-import com.github.mikephil.charting.data.LineDataSet;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class HomeFragment extends Fragment {
 
@@ -81,7 +43,7 @@ public class HomeFragment extends Fragment {
 
     LinearLayout chartContainer;
     int index = 0;
-    Button btEditFile,btDayDown,btDayChart,buttonCurrent,btMinDown, btMinChart,btBuyPrice;
+    Button btEditFile,btDayDown,btDayChart,btCurrent,btMinDown, btMinChart,btProfitRanking;
     EditText editText;
     Spinner fileSpinner;
 
@@ -93,6 +55,7 @@ public class HomeFragment extends Fragment {
     ArrayList<String> stocklist_in_selectedFile;
     HashMap<String, String> currentPriceMap = new HashMap<>();
     int day_count;
+    DLOAD dload;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -115,9 +78,11 @@ public class HomeFragment extends Fragment {
         btMinChart = binding.btMinChart;
         btDayDown = binding.homeBtDayDN;
         btDayChart = binding.homeBtDayChart;
-        buttonCurrent = binding.btCurrent;
+        btCurrent = binding.btCurrent;
         chartContainer = binding.chartContainer;
+        btProfitRanking = binding.homeProfitranking;
         loadFilesIntoSpinner();
+        dload = new DLOAD(SelectedFile);
 
         day_count = Integer.parseInt(String.valueOf(editText.getText()));
 
@@ -152,10 +117,14 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        buttonCurrent.setOnClickListener(new View.OnClickListener() {
+        btProfitRanking.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                chartapi.addChartInfo(chartContainer);
+                DLOAD dload = new DLOAD("");
+                String information = dload.threadProfitRanking("");
+                Intent intent = new Intent(requireContext(), Inform.class);
+                intent.putExtra("stock_code", information);
+                startActivity(intent);
             }
         });
 
@@ -175,8 +144,19 @@ public class HomeFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 try {
-                    ShowChart();
-                    chartapi.addChartInfo(chartContainer);
+                    ShowDayChart();
+
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+
+        btCurrent.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    dl_currentPrice();
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -220,6 +200,7 @@ public class HomeFragment extends Fragment {
             public void onItemSelected(AdapterView<?> parent, View view,
                                        int position, long id) {
                 SelectedFile = fileNames.get(position);
+                dload = new DLOAD(SelectedFile);
                 chartapi = new CHART(getContext(), SelectedFile);
             }
 
@@ -233,16 +214,14 @@ public class HomeFragment extends Fragment {
     public void dl_dayChart(String stocklist) throws InterruptedException {
 
         day_count = Integer.parseInt(String.valueOf(editText.getText()));
-        DLOAD dload = new DLOAD(SelectedFile);
         dload.threadChartDayList(day_count);
     }
     public void dl_minChart(String stocklist) throws InterruptedException {
 
         day_count = Integer.parseInt(String.valueOf(editText.getText()));
-        DLOAD dload = new DLOAD(SelectedFile);
         dload.threadChartMinList(day_count);
     }
-    public void ShowChart() throws InterruptedException {
+    public void ShowDayChart() throws InterruptedException {
         day_count = Integer.parseInt(String.valueOf(editText.getText()));
 
         stocklist_in_selectedFile = extfile.read_stocklist(SelectedFile);
@@ -250,10 +229,11 @@ public class HomeFragment extends Fragment {
         chartContainer.removeAllViews();
 
         for (String stock : stocklist_in_selectedFile) {
-            int[][] price3 = new int[3][day_count];
             int[] price  = extfile.readOHLCV(stock);
             chartapi.addChart(getContext(),chartContainer, day_count,price,stock);
         }
+
+        chartapi.addChartInfo(chartContainer);
     }
 
     public void ShowMinChart() throws InterruptedException {
@@ -264,12 +244,24 @@ public class HomeFragment extends Fragment {
         chartContainer.removeAllViews();
 
         for (String stock : stocklist_in_selectedFile) {
-            int[][] price3 = new int[3][day_count];
             int[] price  = extfile.readOHLCV(stock+"min");
             chartapi.addChart(getContext(), chartContainer, day_count,price,stock);
         }
+        chartapi.addChartInfo(chartContainer);
     }
 
+    public void dl_currentPrice() throws InterruptedException {
+
+        day_count = Integer.parseInt(String.valueOf(editText.getText()));
+        HashMap<String, String> stockhash = dload.threadCurrentPriceList();
+        ArrayList<String> current_price = new ArrayList<>();
+        stocklist_in_selectedFile = extfile.read_stocklist(SelectedFile);
+        for(int i =0;i<stockhash.size();i++)
+        {
+            current_price.add(stockhash.get(stocklist_in_selectedFile.get(i)));
+        }
+        chartapi.addChartInfo(chartContainer,current_price);
+    }
 
     public void onResume() {
         super.onResume();

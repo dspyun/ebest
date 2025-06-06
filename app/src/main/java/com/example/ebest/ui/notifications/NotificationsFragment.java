@@ -1,7 +1,6 @@
 package com.example.ebest.ui.notifications;
 
 import android.content.Intent;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.LayoutInflater;
@@ -13,25 +12,17 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.example.ebest.R;
 import com.example.ebest.api.DLOAD;
 import com.example.ebest.api.EXTFILE;
 import com.example.ebest.databinding.FragmentNotificationsBinding;
 import com.example.ebest.ui.common.CHART;
-import com.example.ebest.ui.home.StockEdit;
-import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.components.XAxis;
-import com.github.mikephil.charting.data.Entry;
-import com.github.mikephil.charting.data.LineData;
-import com.github.mikephil.charting.data.LineDataSet;
-import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
+import com.example.ebest.ui.onedepth.StockEdit;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -40,7 +31,7 @@ import java.util.HashMap;
 public class NotificationsFragment extends Fragment {
 
     private FragmentNotificationsBinding binding;
-    Button btEditTarget,btMinDown,btDayDown,btMinChart,btDayChart,btBuyPrice;
+    Button btEditTarget,btMinDown,btDayDown,btMinChart,btDayChart,btCurrent;
     EditText editText;
     Spinner fileSpinner;
     LinearLayout chartContainer;
@@ -49,6 +40,7 @@ public class NotificationsFragment extends Fragment {
 
     EXTFILE extfile = new EXTFILE();
     CHART chartapi;
+    DLOAD dload;
     ArrayList<String> stocklist_in_selectedFile;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -66,12 +58,14 @@ public class NotificationsFragment extends Fragment {
         btMinChart = binding.notiMinchart;
         btDayDown = binding.notiDayDN;
         btDayChart = binding.notiDaychart;
-        btBuyPrice = binding.notiBuyprice;
+        btCurrent = binding.notiCurrentprice;
         chartContainer = binding.notiContainer;
 
         stocklist_in_selectedFile = extfile.read_stocklist(SelectedFile);
 
         loadFilesIntoSpinner();
+
+        dload = new DLOAD(SelectedFile);
 
         day_count = Integer.parseInt(String.valueOf(editText.getText()));
 
@@ -120,28 +114,35 @@ public class NotificationsFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 try {
-                    ShowChart();
-                    chartapi.addChartInfo(chartContainer);
+                    ShowDayChart();
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }
         });
-        btBuyPrice.setOnClickListener(new View.OnClickListener() {
+
+        btCurrent.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                chartapi.addChartInfo(chartContainer);
+                try {
+                    dl_currentPrice();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
             }
         });
+
         //final TextView textView = binding.textNotifications;
         //notificationsViewModel.getText().observe(getViewLifecycleOwner(), textView::setText);
         return root;
     }
+    public void dl_minChart(String stocklist) throws InterruptedException {
 
+        day_count = Integer.parseInt(String.valueOf(editText.getText()));
+        dload.threadChartMinList(day_count);
+    }
     public void ShowMinChart() throws InterruptedException {
         day_count = Integer.parseInt(String.valueOf(editText.getText()));
-
-
         // before add, remove all old chart
         chartContainer.removeAllViews();
 
@@ -150,30 +151,41 @@ public class NotificationsFragment extends Fragment {
             int[] price  = extfile.readOHLCV(stock+"min");
             chartapi.addChart(getContext(), chartContainer, day_count,price,stock);
         }
+        chartapi.addChartInfo(chartContainer);
     }
 
     public void dl_dayChart(String stocklist) throws InterruptedException {
 
         day_count = Integer.parseInt(String.valueOf(editText.getText()));
-        DLOAD dload = new DLOAD(SelectedFile);
         dload.threadChartDayList(day_count);
     }
-    public void dl_minChart(String stocklist) throws InterruptedException {
 
+    public void ShowDayChart() throws InterruptedException {
         day_count = Integer.parseInt(String.valueOf(editText.getText()));
-        DLOAD dload = new DLOAD(SelectedFile);
-        dload.threadChartMinList(day_count);
-    }
-    public void ShowChart() throws InterruptedException {
-        day_count = Integer.parseInt(String.valueOf(editText.getText()));
+
+        stocklist_in_selectedFile = extfile.read_stocklist(SelectedFile);
         // before add, remove all old chart
         chartContainer.removeAllViews();
 
         for (String stock : stocklist_in_selectedFile) {
-            int[][] price3 = new int[3][day_count];
             int[] price  = extfile.readOHLCV(stock);
             chartapi.addChart(getContext(),chartContainer, day_count,price,stock);
         }
+
+        chartapi.addChartInfo(chartContainer);
+    }
+
+    public void dl_currentPrice() throws InterruptedException {
+
+        day_count = Integer.parseInt(String.valueOf(editText.getText()));
+        HashMap<String, String> stockhash = dload.threadCurrentPriceList();
+        ArrayList<String> current_price = new ArrayList<>();
+        stocklist_in_selectedFile = extfile.read_stocklist(SelectedFile);
+        for(int i =0;i<stockhash.size();i++)
+        {
+            current_price.add(stockhash.get(stocklist_in_selectedFile.get(i)));
+        }
+        chartapi.addChartInfo(chartContainer,current_price);
     }
 
     private void loadFilesIntoSpinner() {
@@ -210,6 +222,7 @@ public class NotificationsFragment extends Fragment {
             public void onItemSelected(AdapterView<?> parent, View view,
                                        int position, long id) {
                 SelectedFile = fileNames.get(position);
+                dload = new DLOAD(SelectedFile);
                 chartapi = new CHART(getContext(), SelectedFile);
             }
             @Override

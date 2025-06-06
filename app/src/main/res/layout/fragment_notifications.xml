@@ -101,7 +101,7 @@
             android:padding="0dp"
             android:text="일봉차트" />
         <Button
-            android:id="@+id/noti_buyprice"
+            android:id="@+id/noti_currentprice"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_row="1"

@@ -11,108 +11,85 @@
         android:columnCount="4"
         android:rowCount="2">
 
-        <Spinner
-            android:id="@+id/fileSpinner1"
+        <Button
+            android:id="@+id/btNews"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_row="0"
             android:layout_column="0"
             android:layout_columnWeight="1"
             android:layout_rowWeight="1"
-            android:spinnerMode="dropdown"
-            android:textSize="30sp"/>
+            android:text="뉴스" />
         <Button
-            android:id="@+id/btCurrent1"
+            android:id="@+id/btRanking"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_row="0"
             android:layout_column="1"
             android:layout_columnWeight="1"
             android:layout_rowWeight="1"
-            android:text="전리스트" />
+            android:text="이익랭킹" />
+
         <Button
-            android:id="@+id/btMinDN1"
+            android:id="@+id/btDummy02"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_row="0"
             android:layout_column="2"
             android:layout_columnWeight="1"
             android:layout_rowWeight="1"
-            android:text="분봉다운" />
+            android:text="더미02" />
 
         <Button
-            android:id="@+id/btMinChart1"
+            android:id="@+id/btDummy03"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_row="0"
             android:layout_column="3"
             android:layout_columnWeight="1"
             android:layout_rowWeight="1"
-            android:text="분봉차트" />
+            android:text="더미03" />
 
-
-        <EditText
-            android:id="@+id/editText1"
+        <Button
+            android:id="@+id/btDummy10"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_row="1"
             android:layout_column="0"
             android:layout_columnWeight="1"
             android:layout_rowWeight="1"
-            android:digits="0123456789"
-            android:hint="일수"
-            android:inputType="number"
-            android:text="500"
-            android:textSize="16sp" />
+            android:text="더미10" />
+
         <Button
-            android:id="@+id/buttonRead1"
+            android:id="@+id/btDummy11"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_row="1"
             android:layout_column="1"
             android:layout_columnWeight="1"
             android:layout_rowWeight="1"
-            android:text="종목편집" />
+            android:text="더미11" />
 
         <Button
-            android:id="@+id/buttonDN1"
+            android:id="@+id/btDummy12"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_row="1"
             android:layout_column="2"
             android:layout_columnWeight="1"
             android:layout_rowWeight="1"
-            android:text="전다운" />
+            android:text="더미12" />
 
         <Button
-            android:id="@+id/buttonChart1"
+            android:id="@+id/btDummy13"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_row="1"
             android:layout_column="3"
             android:layout_columnWeight="1"
             android:layout_rowWeight="1"
-            android:text="일봉차트" />
-
+            android:text="더미13" />
     </GridLayout>
-    <TextView
-        android:id="@+id/dashtitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="전종목 차트 상관 관계 분석" />
-    <ScrollView
-        android:id="@+id/scrollChart1"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:fillViewport="true"
-        android:paddingBottom="50dp">
 
-        <LinearLayout
-            android:id="@+id/chartContainer1"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
-
-    </ScrollView>  <!-- fillViewport 설정을 통해 자식이 스크롤 뷰의 크기에 꽉 차게 함 -->
 
 </LinearLayout>

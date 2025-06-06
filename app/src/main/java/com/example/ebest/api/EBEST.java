@@ -12,14 +12,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.ProtocolException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.io.OutputStream;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -27,10 +21,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
+
 
 import javax.net.ssl.HttpsURLConnection;
+
 
 public class EBEST  {
 
@@ -57,6 +51,10 @@ public class EBEST  {
         todayDate = today.format(formatter);
     }
 
+    public String get_token()
+    {
+        return ACCESS_TOKEN;
+    }
     public void strSplit(StringBuffer sb) throws JSONException {
         String temp=sb.toString();
         JSONObject jsonObject = new JSONObject(temp);
@@ -256,7 +254,6 @@ public class EBEST  {
             }
             EXTFILE extfile = new EXTFILE();
             extfile.writeCodelist(chart_data);
-            Log.d("NetworkUtils",  " 1단계호가 ");
             return "OK";
         } catch (Exception e) {
             Log.e("YourTag", "Error occurred", e);
@@ -412,7 +409,224 @@ public class EBEST  {
         return "ok";
     }
 
+    public String stock_info_fng(String code)
+    {
+        // 주식 재무정보 조회 예제
+        // stock/market-data는 stock경로의 market-data db를 가르킴
+        String tokenRequestUrl = HOST + "stock/investinfo";
+        String information;
 
+        try {
+            // Create the URL object
+            URL url = new URL(tokenRequestUrl);
+            HttpsURLConnection connection = getConnection(url,"t3320",  ContentsType);
+
+            JSONObject innerdata = new JSONObject();
+            innerdata.put("gicode", code);
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("t3320InBlock", innerdata);
+
+            byte[] body = jsonObject.toString().getBytes();
+            connection.setFixedLengthStreamingMode(body.length);
+            connection.setDoOutput(true);
+
+            OutputStream outputStream = connection.getOutputStream();
+            outputStream.write(body);
+            outputStream.flush();
+
+            int responseCode = connection.getResponseCode();
+            if (responseCode != 200) {
+                Log.e("NetworkUtils", "HTTP error code: " + responseCode);
+                return "";
+            }
+
+            Log.d("NetworkUtils", "Request body: " + jsonObject.toString());
+
+            // Read the response
+            StringBuilder respStr = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(connection.getInputStream(), "utf-8"))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    respStr.append(line);
+                    //Log.d("NetworkUtils", line);
+                }
+            }
+
+            // Parse JSON response
+            JSONObject jobj = new JSONObject(respStr.toString());
+            JSONObject bodyobj00 = jobj.getJSONObject("t3320OutBlock");
+            JSONObject bodyobj01 = jobj.getJSONObject("t3320OutBlock1");
+
+            information = "회사명 : " + bodyobj00.getString("company") + ","+"\n";
+            information += "배당률 : " + bodyobj00.getString("cashrate") + ","+"\n";
+            information += "현재가 : " + bodyobj00.getString("price") + ","+"\n";
+            information += "pbr : " + bodyobj01.getString("pbr") + ","+"\n";
+            information += "roa : " + bodyobj01.getString("roa") + ","+"\n";
+            information += "per : " + bodyobj01.getString("per") + ","+"\n";
+            information += "eps : " + bodyobj01.getString("eps") + ","+"\n";
+            information += "roe : " + bodyobj01.getString("roe") + ","+"\n";
+            information += "ebitda : " + bodyobj01.getString("ebitda") + ","+"\n";
+            information += "cps : " + bodyobj01.getString("cps") + ","+"\n";
+            information += "bps : " + bodyobj01.getString("bps") + ","+"\n";
+            //EXTFILE extfile = new EXTFILE();
+            //extfile.writeOHLCV(code+"min",chart_data);
+            //Log.d("NetworkUtils", "날짜 : " + date + ", 종가 : " + hoga);
+
+        } catch (Exception e) {
+            Log.e("YourTag", "Error occurred", e);
+            return "";
+        }
+        return information;
+    }
+
+
+    public String stock_profit_ranking(String code)
+    {
+        // 주식 재무정보랭킹 조회 예제
+        // stock/market-data는 stock경로의 market-data db를 가르킴
+        String tokenRequestUrl = HOST + "stock/investinfo";
+        String information="";
+
+        try {
+            // Create the URL object
+            URL url = new URL(tokenRequestUrl);
+            HttpsURLConnection connection = getConnection(url,"t3341",  ContentsType);
+
+            JSONObject innerdata = new JSONObject();
+            innerdata.put("gicode", code);
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("t3341InBlock", innerdata);
+
+            String[][] inData = {{"gubun","0"},{"gubun1","2"},{"gubun2","1"}};
+            int len = inData.length;
+            for(int i =0;i<len;i++)
+            {
+                innerdata.put(inData[i][0], inData[i][1]);
+                jsonObject.put("t3341InBlock", innerdata);
+            }
+            innerdata.put("idx", 0);
+            jsonObject.put("t3341InBlock", innerdata);
+
+            byte[] body = jsonObject.toString().getBytes();
+            connection.setFixedLengthStreamingMode(body.length);
+            connection.setDoOutput(true);
+
+            OutputStream outputStream = connection.getOutputStream();
+            outputStream.write(body);
+            outputStream.flush();
+
+            int responseCode = connection.getResponseCode();
+            if (responseCode != 200) {
+                Log.e("NetworkUtils", "HTTP error code: " + responseCode);
+                return "";
+            }
+
+            Log.d("NetworkUtils", "Request body: " + jsonObject.toString());
+
+            // Read the response
+            StringBuilder respStr = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(connection.getInputStream(), "utf-8"))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    respStr.append(line);
+                    //Log.d("NetworkUtils", line);
+                }
+            }
+
+            // Parse JSON response
+            JSONObject jobj = new JSONObject(respStr.toString());
+            JSONArray bodyobj = jobj.getJSONArray("t3341OutBlock1");
+
+            int read_count = bodyobj.length();
+            for(int i =0;i<read_count;i++) {
+                information += bodyobj.getJSONObject(i).getString("rank") + " ";
+                information += bodyobj.getJSONObject(i).getString("hname") + " ";
+                information += bodyobj.getJSONObject(i).getString("shcode") + "\n";
+                information += "영업이익증가율 " + bodyobj.getJSONObject(i).getString("operatingincomegrowt") + ", ";
+                information += "매출액증가율 " +bodyobj.getJSONObject(i).getString("salesgrowth");
+                information += "\n";
+                information += "eps " +bodyobj.getJSONObject(i).getString("eps") + ", ";
+                information += "bps " +bodyobj.getJSONObject(i).getString("bps") + ", ";
+                information += "roe " +bodyobj.getJSONObject(i).getString("roe") + "\n";
+                information += "per " +bodyobj.getJSONObject(i).getString("per") + ", ";
+                information += "pbr " +bodyobj.getJSONObject(i).getString("pbr") + ", ";
+                information += "peg " +bodyobj.getJSONObject(i).getString("peg") + "\n";
+                information += "--------------------------------\n";
+            }
+
+            //EXTFILE extfile = new EXTFILE();
+            //extfile.writeOHLCV(code+"min",chart_data);
+            Log.d("NetworkUtils", "날짜 : " + ", 종가 : " );
+
+        } catch (Exception e) {
+            Log.e("YourTag", "Error occurred", e);
+            return "";
+        }
+        return information;
+    }
+
+
+    public StringBuilder news_body(String realkey)
+    {
+        // 주식 뉴스 조회 예제
+        String tokenRequestUrl = HOST + "stock/investinfo";
+        StringBuilder htmlBuilder = new StringBuilder();
+        try {
+            // Create the URL object
+            URL url = new URL(tokenRequestUrl);
+            HttpsURLConnection connection = getConnection(url,"t3102",  ContentsType);
+
+            JSONObject innerdata = new JSONObject();
+            innerdata.put("sNewsno", realkey);
+            JSONObject root = new JSONObject();
+            root.put("t3102InBlock",innerdata);
+
+            byte[] body01 = root.toString().getBytes();
+            connection.setFixedLengthStreamingMode(body01.length);
+            connection.setDoOutput(true);
+
+            OutputStream outputStream = connection.getOutputStream();
+            outputStream.write(body01);
+            outputStream.flush();
+
+            int responseCode = connection.getResponseCode();
+            if (responseCode != 200) {
+                Log.e("NetworkUtils", "HTTP error code: " + responseCode);
+                return htmlBuilder;
+            }
+
+            Log.d("NetworkUtils", "Request body: " + root.toString());
+
+            // Read the response
+            StringBuilder respStr = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(connection.getInputStream(), "utf-8"))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    respStr.append(line);
+                    //Log.d("NetworkUtils", line);
+                }
+            }
+
+            // Parse JSON response
+            JSONObject jobj = new JSONObject(respStr.toString());
+            JSONArray bodyArray = jobj.getJSONArray("t3102OutBlock1");
+
+            htmlBuilder = new StringBuilder();
+            for (int i = 0; i < bodyArray.length(); i++) {
+                JSONObject obj = bodyArray.getJSONObject(i);
+                htmlBuilder.append(obj.getString("sBody"));
+            }
+
+
+        } catch (Exception e) {
+            Log.e("YourTag", "Error occurred", e);
+            return htmlBuilder;
+        }
+        return htmlBuilder;
+    }
     String chart_minute(int count, String code)
     {
         // 주식 분봉차트 조회 예제

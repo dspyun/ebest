@@ -49,6 +49,16 @@
             android:layout_rowWeight="1"
             android:padding="0dp"
             android:text="파일편집" />
+        <Button
+            android:id="@+id/home_profitranking"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_row="0"
+            android:layout_column="4"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:padding="0dp"
+            android:text="이익순위" />
 
         <Button
             android:id="@+id/btMinDN"
@@ -102,7 +112,7 @@
             android:layout_columnWeight="1"
             android:layout_rowWeight="1"
             android:padding="0dp"
-            android:text="목표보기"/>
+            android:text="현재가"/>
     </GridLayout>
 
     <ScrollView
